@@ -33,17 +33,17 @@ if (ret):
 with open(timingfile, 'r') as f:
 	timing = [line[:-1].split() for line in f.readlines()]
 	f.close()
-	os.unlink(timingfile)
 
 with open(scriptfile, 'r') as f:
 	script = f.read()
 	f.close()
-	os.unlink(scriptfile)
 
 json = json.dumps({ 'cols': cols, 'rows': lines, 
 	'timing': timing, 'script': script})
 
 # write json file
-with open(args.session, 'w') as f:
+with open(args.outfile, 'w') as f:
 	f.write(json)
 	f.close()
+	os.unlink(timingfile)
+	os.unlink(scriptfile)
