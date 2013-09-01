@@ -1,0 +1,49 @@
+#!/usr/bin/env python
+
+from subprocess import call, check_output
+import os, uuid, json, argparse
+
+parser = argparse.ArgumentParser(description=('trex - a terminal recorder wrapper around `script`: '
+	'This program records your current terminal session and stores it as a '
+	'json encoded file in OUT_FILE. Use the generated file to playback the session in your '
+	'browser using the trex jQuery plugin.'
+))
+parser.add_argument('outfile', metavar='OUT_FILE', type=str, help=('The JSON-encoded session file (e.g. /some/path/my-session.json)'))
+parser.add_argument('--tmp', metavar='DIR', type=str, 
+	help='tmp dir for scriptfiles [/tmp]', default='/tmp')
+args = parser.parse_args()
+
+prefix = 'trex_'
+cols = check_output(['tput', 'cols'])[:-1]
+lines = check_output(['tput', 'lines'])[:-1]
+timing, script = [], []
+
+timingfile = ''.join([args.tmp, '/', prefix, str(uuid.uuid4())])
+scriptfile = ''.join([args.tmp, '/', prefix, str(uuid.uuid4())])
+
+# run script
+ret = call(['script', '-q', '-t' + timingfile, scriptfile])
+
+if (ret):
+	os.unlink(timingfile)
+	os.unlink(scriptfile)
+	exit(1)
+
+# reformat to json
+with open(timingfile, 'r') as f:
+	timing = [line[:-1].split() for line in f.readlines()]
+	f.close()
+	os.unlink(timingfile)
+
+with open(scriptfile, 'r') as f:
+	script = f.read()
+	f.close()
+	os.unlink(scriptfile)
+
+json = json.dumps({ 'cols': cols, 'rows': lines, 
+	'timing': timing, 'script': script})
+
+# write json file
+with open(args.session, 'w') as f:
+	f.write(json)
+	f.close()
