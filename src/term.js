@@ -3,10 +3,6 @@
  * Copyright (c) 2012-2013, Christopher Jeffrey (MIT License)
  * https://github.com/chjj/term.js
  *
- * Partly modified for the purpose of solely displaying
- * recorded sessions by Jan Kohlhof <kohj@informatik.uni-marburg.de>
- *
- *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
@@ -410,6 +406,10 @@ each(keys(Terminal.defaults), function(key) {
   Terminal.options[key] = Terminal.defaults[key];
 });
 
+/**
+ * Focused Terminal
+ */
+
 Terminal.focus = null;
 
 Terminal.prototype.focus = function() {
@@ -420,6 +420,7 @@ Terminal.prototype.focus = function() {
   }
 
   if (this.sendFocus) this.send('\x1b[I');
+  this.showCursor();
 
   // try {
   //   this.element.focus();
@@ -430,6 +431,195 @@ Terminal.prototype.focus = function() {
   // this.emit('focus');
 
   Terminal.focus = this;
+};
+
+Terminal.prototype.blur = function() {
+  if (Terminal.focus !== this) return;
+
+  this.cursorState = 0;
+  this.refresh(this.y, this.y);
+  if (this.sendFocus) this.send('\x1b[O');
+
+  // try {
+  //   this.element.blur();
+  // } catch (e) {
+  //   ;
+  // }
+
+  // this.emit('blur');
+
+  Terminal.focus = null;
+};
+
+/**
+ * Initialize global behavior
+ */
+
+Terminal.prototype.initGlobal = function() {
+  var document = this.document;
+
+  Terminal._boundDocs = Terminal._boundDocs || [];
+  if (~indexOf(Terminal._boundDocs, document)) {
+    return;
+  }
+  Terminal._boundDocs.push(document);
+
+  Terminal.bindPaste(document);
+
+  Terminal.bindKeys(document);
+
+  Terminal.bindCopy(document);
+
+  if (this.isIpad) {
+    Terminal.fixIpad(document);
+  }
+
+  if (this.useStyle) {
+    Terminal.insertStyle(document, this.colors[256], this.colors[257]);
+  }
+};
+
+/**
+ * Bind to paste event
+ */
+
+Terminal.bindPaste = function(document) {
+  // This seems to work well for ctrl-V and middle-click,
+  // even without the contentEditable workaround.
+  var window = document.defaultView;
+  on(window, 'paste', function(ev) {
+    var term = Terminal.focus;
+    if (!term) return;
+    if (ev.clipboardData) {
+      term.send(ev.clipboardData.getData('text/plain'));
+    } else if (term.context.clipboardData) {
+      term.send(term.context.clipboardData.getData('Text'));
+    }
+    // Not necessary. Do it anyway for good measure.
+    term.element.contentEditable = 'inherit';
+    return cancel(ev);
+  });
+};
+
+/**
+ * Global Events for key handling
+ */
+
+Terminal.bindKeys = function(document) {
+  // We should only need to check `target === body` below,
+  // but we can check everything for good measure.
+  on(document, 'keydown', function(ev) {
+    if (!Terminal.focus) return;
+    var target = ev.target || ev.srcElement;
+    if (!target) return;
+    if (target === Terminal.focus.element
+        || target === Terminal.focus.context
+        || target === Terminal.focus.document
+        || target === Terminal.focus.body
+        || target === Terminal._textarea
+        || target === Terminal.focus.parent) {
+      return Terminal.focus.keyDown(ev);
+    }
+  }, true);
+
+  on(document, 'keypress', function(ev) {
+    if (!Terminal.focus) return;
+    var target = ev.target || ev.srcElement;
+    if (!target) return;
+    if (target === Terminal.focus.element
+        || target === Terminal.focus.context
+        || target === Terminal.focus.document
+        || target === Terminal.focus.body
+        || target === Terminal._textarea
+        || target === Terminal.focus.parent) {
+      return Terminal.focus.keyPress(ev);
+    }
+  }, true);
+
+  // If we click somewhere other than a
+  // terminal, unfocus the terminal.
+  on(document, 'mousedown', function(ev) {
+    if (!Terminal.focus) return;
+
+    var el = ev.target || ev.srcElement;
+    if (!el) return;
+
+    do {
+      if (el === Terminal.focus.element) return;
+    } while (el = el.parentNode);
+
+    Terminal.focus.blur();
+  });
+};
+
+/**
+ * Copy Selection w/ Ctrl-C (Select Mode)
+ */
+
+Terminal.bindCopy = function(document) {
+  var window = document.defaultView;
+
+  // if (!('onbeforecopy' in document)) {
+  //   // Copies to *only* the clipboard.
+  //   on(window, 'copy', function fn(ev) {
+  //     var term = Terminal.focus;
+  //     if (!term) return;
+  //     if (!term._selected) return;
+  //     var text = term.grabText(
+  //       term._selected.x1, term._selected.x2,
+  //       term._selected.y1, term._selected.y2);
+  //     term.emit('copy', text);
+  //     ev.clipboardData.setData('text/plain', text);
+  //   });
+  //   return;
+  // }
+
+  // Copies to primary selection *and* clipboard.
+  // NOTE: This may work better on capture phase,
+  // or using the `beforecopy` event.
+  on(window, 'copy', function(ev) {
+    var term = Terminal.focus;
+    if (!term) return;
+    if (!term._selected) return;
+    var textarea = term.getCopyTextarea();
+    var text = term.grabText(
+      term._selected.x1, term._selected.x2,
+      term._selected.y1, term._selected.y2);
+    term.emit('copy', text);
+    textarea.focus();
+    textarea.textContent = text;
+    textarea.value = text;
+    textarea.setSelectionRange(0, text.length);
+    setTimeout(function() {
+      term.element.focus();
+      term.focus();
+    }, 1);
+  });
+};
+
+/**
+ * Fix iPad - no idea if this works
+ */
+
+Terminal.fixIpad = function(document) {
+  var textarea = document.createElement('textarea');
+  textarea.style.position = 'absolute';
+  textarea.style.left = '-32000px';
+  textarea.style.top = '-32000px';
+  textarea.style.width = '0px';
+  textarea.style.height = '0px';
+  textarea.style.opacity = '0';
+  textarea.style.backgroundColor = 'transparent';
+  textarea.style.borderStyle = 'none';
+  textarea.style.outlineStyle = 'none';
+
+  document.getElementsByTagName('body')[0].appendChild(textarea);
+
+  Terminal._textarea = textarea;
+
+  setTimeout(function() {
+    textarea.focus();
+  }, 1000);
 };
 
 /**
@@ -457,6 +647,8 @@ Terminal.insertStyle = function(document, bg, fg) {
     + '  background: ' + bg + ';\n'
     + '}\n'
     + '\n'
+    + '.terminal-cursor {\n'
+    + '  color: ' + bg + ';\n'
     + '  background: ' + fg + ';\n'
     + '}\n';
 
@@ -500,23 +692,71 @@ Terminal.prototype.open = function(parent) {
 
   // Create the lines for our terminal.
   this.children = [];
-
   for (; i < this.rows; i++) {
     div = this.document.createElement('div');
     this.element.appendChild(div);
     this.children.push(div);
   }
-  
-	this.parent.appendChild(this.element);
+  this.parent.appendChild(this.element);
 
   // Draw the screen.
   this.refresh(0, this.rows - 1);
+
+  // Initialize global actions that
+  // need to be taken on the document.
+  this.initGlobal();
 
   // Ensure there is a Terminal.focus.
   this.focus();
 
   // Start blinking the cursor.
   this.startBlink();
+
+  // Bind to DOM events related
+  // to focus and paste behavior.
+  on(this.element, 'focus', function() {
+    self.focus();
+    if (self.isIpad) {
+      Terminal._textarea.focus();
+    }
+  });
+
+  // This causes slightly funky behavior.
+  // on(this.element, 'blur', function() {
+  //   self.blur();
+  // });
+
+  on(this.element, 'mousedown', function() {
+    self.focus();
+  });
+
+  // Clickable paste workaround, using contentEditable.
+  // This probably shouldn't work,
+  // ... but it does. Firefox's paste
+  // event seems to only work for textareas?
+  on(this.element, 'mousedown', function(ev) {
+    var button = ev.button != null
+      ? +ev.button
+      : ev.which != null
+        ? ev.which - 1
+        : null;
+
+    // Does IE9 do this?
+    if (self.isMSIE) {
+      button = button === 1 ? 0 : button === 4 ? 1 : button;
+    }
+
+    if (button !== 2) return;
+
+    self.element.contentEditable = 'true';
+    setTimeout(function() {
+      self.element.contentEditable = 'inherit'; // 'false';
+    }, 1);
+  }, true);
+
+  // Listen for mouse events and translate
+  // them into terminal mouse protocols.
+  this.bindMouse();
 
   // Figure out whether boldness affects
   // the character width of monospace fonts.
@@ -525,11 +765,356 @@ Terminal.prototype.open = function(parent) {
   }
 
   // this.emit('open');
+
+  // This can be useful for pasting,
+  // as well as the iPad fix.
+  setTimeout(function() {
+    self.element.focus();
+  }, 100);
+};
+
+// XTerm mouse events
+// http://invisible-island.net/xterm/ctlseqs/ctlseqs.html#Mouse%20Tracking
+// To better understand these
+// the xterm code is very helpful:
+// Relevant files:
+//   button.c, charproc.c, misc.c
+// Relevant functions in xterm/button.c:
+//   BtnCode, EmitButtonCode, EditorButton, SendMousePosition
+Terminal.prototype.bindMouse = function() {
+  var el = this.element
+    , self = this
+    , pressed = 32;
+
+  var wheelEvent = 'onmousewheel' in this.context
+    ? 'mousewheel'
+    : 'DOMMouseScroll';
+
+  // mouseup, mousedown, mousewheel
+  // left click: ^[[M 3<^[[M#3<
+  // mousewheel up: ^[[M`3>
+  function sendButton(ev) {
+    var button
+      , pos;
+
+    // get the xterm-style button
+    button = getButton(ev);
+
+    // get mouse coordinates
+    pos = getCoords(ev);
+    if (!pos) return;
+
+    sendEvent(button, pos);
+
+    switch (ev.type) {
+      case 'mousedown':
+        pressed = button;
+        break;
+      case 'mouseup':
+        // keep it at the left
+        // button, just in case.
+        pressed = 32;
+        break;
+      case wheelEvent:
+        // nothing. don't
+        // interfere with
+        // `pressed`.
+        break;
+    }
+  }
+
+  // motion example of a left click:
+  // ^[[M 3<^[[M@4<^[[M@5<^[[M@6<^[[M@7<^[[M#7<
+  function sendMove(ev) {
+    var button = pressed
+      , pos;
+
+    pos = getCoords(ev);
+    if (!pos) return;
+
+    // buttons marked as motions
+    // are incremented by 32
+    button += 32;
+
+    sendEvent(button, pos);
+  }
+
+  // encode button and
+  // position to characters
+  function encode(data, ch) {
+    if (!self.utfMouse) {
+      if (ch === 255) return data.push(0);
+      if (ch > 127) ch = 127;
+      data.push(ch);
+    } else {
+      if (ch === 2047) return data.push(0);
+      if (ch < 127) {
+        data.push(ch);
+      } else {
+        if (ch > 2047) ch = 2047;
+        data.push(0xC0 | (ch >> 6));
+        data.push(0x80 | (ch & 0x3F));
+      }
+    }
+  }
+
+  // send a mouse event:
+  // regular/utf8: ^[[M Cb Cx Cy
+  // urxvt: ^[[ Cb ; Cx ; Cy M
+  // sgr: ^[[ Cb ; Cx ; Cy M/m
+  // vt300: ^[[ 24(1/3/5)~ [ Cx , Cy ] \r
+  // locator: CSI P e ; P b ; P r ; P c ; P p & w
+  function sendEvent(button, pos) {
+    // self.emit('mouse', {
+    //   x: pos.x - 32,
+    //   y: pos.x - 32,
+    //   button: button
+    // });
+
+    if (self.vt300Mouse) {
+      // NOTE: Unstable.
+      // http://www.vt100.net/docs/vt3xx-gp/chapter15.html
+      button &= 3;
+      pos.x -= 32;
+      pos.y -= 32;
+      var data = '\x1b[24';
+      if (button === 0) data += '1';
+      else if (button === 1) data += '3';
+      else if (button === 2) data += '5';
+      else if (button === 3) return;
+      else data += '0';
+      data += '~[' + pos.x + ',' + pos.y + ']\r';
+      self.send(data);
+      return;
+    }
+
+    if (self.decLocator) {
+      // NOTE: Unstable.
+      button &= 3;
+      pos.x -= 32;
+      pos.y -= 32;
+      if (button === 0) button = 2;
+      else if (button === 1) button = 4;
+      else if (button === 2) button = 6;
+      else if (button === 3) button = 3;
+      self.send('\x1b['
+        + button
+        + ';'
+        + (button === 3 ? 4 : 0)
+        + ';'
+        + pos.y
+        + ';'
+        + pos.x
+        + ';'
+        + (pos.page || 0)
+        + '&w');
+      return;
+    }
+
+    if (self.urxvtMouse) {
+      pos.x -= 32;
+      pos.y -= 32;
+      pos.x++;
+      pos.y++;
+      self.send('\x1b[' + button + ';' + pos.x + ';' + pos.y + 'M');
+      return;
+    }
+
+    if (self.sgrMouse) {
+      pos.x -= 32;
+      pos.y -= 32;
+      self.send('\x1b[<'
+        + ((button & 3) === 3 ? button & ~3 : button)
+        + ';'
+        + pos.x
+        + ';'
+        + pos.y
+        + ((button & 3) === 3 ? 'm' : 'M'));
+      return;
+    }
+
+    var data = [];
+
+    encode(data, button);
+    encode(data, pos.x);
+    encode(data, pos.y);
+
+    self.send('\x1b[M' + String.fromCharCode.apply(String, data));
+  }
+
+  function getButton(ev) {
+    var button
+      , shift
+      , meta
+      , ctrl
+      , mod;
+
+    // two low bits:
+    // 0 = left
+    // 1 = middle
+    // 2 = right
+    // 3 = release
+    // wheel up/down:
+    // 1, and 2 - with 64 added
+    switch (ev.type) {
+      case 'mousedown':
+        button = ev.button != null
+          ? +ev.button
+          : ev.which != null
+            ? ev.which - 1
+            : null;
+
+        if (self.isMSIE) {
+          button = button === 1 ? 0 : button === 4 ? 1 : button;
+        }
+        break;
+      case 'mouseup':
+        button = 3;
+        break;
+      case 'DOMMouseScroll':
+        button = ev.detail < 0
+          ? 64
+          : 65;
+        break;
+      case 'mousewheel':
+        button = ev.wheelDeltaY > 0
+          ? 64
+          : 65;
+        break;
+    }
+
+    // next three bits are the modifiers:
+    // 4 = shift, 8 = meta, 16 = control
+    shift = ev.shiftKey ? 4 : 0;
+    meta = ev.metaKey ? 8 : 0;
+    ctrl = ev.ctrlKey ? 16 : 0;
+    mod = shift | meta | ctrl;
+
+    // no mods
+    if (self.vt200Mouse) {
+      // ctrl only
+      mod &= ctrl;
+    } else if (!self.normalMouse) {
+      mod = 0;
+    }
+
+    // increment to SP
+    button = (32 + (mod << 2)) + button;
+
+    return button;
+  }
+
+  // mouse coordinates measured in cols/rows
+  function getCoords(ev) {
+    var x, y, w, h, el;
+
+    // ignore browsers without pageX for now
+    if (ev.pageX == null) return;
+
+    x = ev.pageX;
+    y = ev.pageY;
+    el = self.element;
+
+    // should probably check offsetParent
+    // but this is more portable
+    while (el && el !== self.document.documentElement) {
+      x -= el.offsetLeft;
+      y -= el.offsetTop;
+      el = 'offsetParent' in el
+        ? el.offsetParent
+        : el.parentNode;
+    }
+
+    // convert to cols/rows
+    w = self.element.clientWidth;
+    h = self.element.clientHeight;
+    x = Math.round((x / w) * self.cols);
+    y = Math.round((y / h) * self.rows);
+
+    // be sure to avoid sending
+    // bad positions to the program
+    if (x < 0) x = 0;
+    if (x > self.cols) x = self.cols;
+    if (y < 0) y = 0;
+    if (y > self.rows) y = self.rows;
+
+    // xterm sends raw bytes and
+    // starts at 32 (SP) for each.
+    x += 32;
+    y += 32;
+
+    return {
+      x: x,
+      y: y,
+      type: ev.type === wheelEvent
+        ? 'mousewheel'
+        : ev.type
+    };
+  }
+
+  on(el, 'mousedown', function(ev) {
+    if (!self.mouseEvents) return;
+
+    // send the button
+    sendButton(ev);
+
+    // ensure focus
+    self.focus();
+
+    // fix for odd bug
+    //if (self.vt200Mouse && !self.normalMouse) {
+    if (self.vt200Mouse) {
+      sendButton({ __proto__: ev, type: 'mouseup' });
+      return cancel(ev);
+    }
+
+    // bind events
+    if (self.normalMouse) on(self.document, 'mousemove', sendMove);
+
+    // x10 compatibility mode can't send button releases
+    if (!self.x10Mouse) {
+      on(self.document, 'mouseup', function up(ev) {
+        sendButton(ev);
+        if (self.normalMouse) off(self.document, 'mousemove', sendMove);
+        off(self.document, 'mouseup', up);
+        return cancel(ev);
+      });
+    }
+
+    return cancel(ev);
+  });
+
+  //if (self.normalMouse) {
+  //  on(self.document, 'mousemove', sendMove);
+  //}
+
+  on(el, wheelEvent, function(ev) {
+    if (!self.mouseEvents) return;
+    if (self.x10Mouse
+        || self.vt300Mouse
+        || self.decLocator) return;
+    sendButton(ev);
+    return cancel(ev);
+  });
+
+  // allow mousewheel scrolling in
+  // the shell for example
+  on(el, wheelEvent, function(ev) {
+    if (self.mouseEvents) return;
+    if (self.applicationKeypad) return;
+    if (ev.type === 'DOMMouseScroll') {
+      self.scrollDisp(ev.detail < 0 ? -5 : 5);
+    } else {
+      self.scrollDisp(ev.wheelDeltaY > 0 ? -5 : 5);
+    }
+    return cancel(ev);
+  });
 };
 
 /**
  * Destroy Terminal
  */
+
 Terminal.prototype.destroy = function() {
   this.readable = false;
   this.writable = false;
@@ -891,7 +1476,7 @@ Terminal.prototype.write = function(data) {
                 }
               }
 
-							this.lines[this.y + this.ybase][this.x] = [this.curAttr, ch];
+              this.lines[this.y + this.ybase][this.x] = [this.curAttr, ch];
               this.x++;
               this.updateRange(this.y);
 
@@ -1781,6 +2366,245 @@ Terminal.prototype.writeln = function(data) {
   this.write(data + '\r\n');
 };
 
+// Key Resources:
+// https://developer.mozilla.org/en-US/docs/DOM/KeyboardEvent
+Terminal.prototype.keyDown = function(ev) {
+  var self = this
+    , key;
+
+  switch (ev.keyCode) {
+    // backspace
+    case 8:
+      if (ev.shiftKey) {
+        key = '\x08'; // ^H
+        break;
+      }
+      key = '\x7f'; // ^?
+      break;
+    // tab
+    case 9:
+      if (ev.shiftKey) {
+        key = '\x1b[Z';
+        break;
+      }
+      key = '\t';
+      break;
+    // return/enter
+    case 13:
+      key = '\r';
+      break;
+    // escape
+    case 27:
+      key = '\x1b';
+      break;
+    // left-arrow
+    case 37:
+      if (this.applicationCursor) {
+        key = '\x1bOD'; // SS3 as ^[O for 7-bit
+        //key = '\x8fD'; // SS3 as 0x8f for 8-bit
+        break;
+      }
+      key = '\x1b[D';
+      break;
+    // right-arrow
+    case 39:
+      if (this.applicationCursor) {
+        key = '\x1bOC';
+        break;
+      }
+      key = '\x1b[C';
+      break;
+    // up-arrow
+    case 38:
+      if (this.applicationCursor) {
+        key = '\x1bOA';
+        break;
+      }
+      if (ev.ctrlKey) {
+        this.scrollDisp(-1);
+        return cancel(ev);
+      } else {
+        key = '\x1b[A';
+      }
+      break;
+    // down-arrow
+    case 40:
+      if (this.applicationCursor) {
+        key = '\x1bOB';
+        break;
+      }
+      if (ev.ctrlKey) {
+        this.scrollDisp(1);
+        return cancel(ev);
+      } else {
+        key = '\x1b[B';
+      }
+      break;
+    // delete
+    case 46:
+      key = '\x1b[3~';
+      break;
+    // insert
+    case 45:
+      key = '\x1b[2~';
+      break;
+    // home
+    case 36:
+      if (this.applicationKeypad) {
+        key = '\x1bOH';
+        break;
+      }
+      key = '\x1bOH';
+      break;
+    // end
+    case 35:
+      if (this.applicationKeypad) {
+        key = '\x1bOF';
+        break;
+      }
+      key = '\x1bOF';
+      break;
+    // page up
+    case 33:
+      if (ev.shiftKey) {
+        this.scrollDisp(-(this.rows - 1));
+        return cancel(ev);
+      } else {
+        key = '\x1b[5~';
+      }
+      break;
+    // page down
+    case 34:
+      if (ev.shiftKey) {
+        this.scrollDisp(this.rows - 1);
+        return cancel(ev);
+      } else {
+        key = '\x1b[6~';
+      }
+      break;
+    // F1
+    case 112:
+      key = '\x1bOP';
+      break;
+    // F2
+    case 113:
+      key = '\x1bOQ';
+      break;
+    // F3
+    case 114:
+      key = '\x1bOR';
+      break;
+    // F4
+    case 115:
+      key = '\x1bOS';
+      break;
+    // F5
+    case 116:
+      key = '\x1b[15~';
+      break;
+    // F6
+    case 117:
+      key = '\x1b[17~';
+      break;
+    // F7
+    case 118:
+      key = '\x1b[18~';
+      break;
+    // F8
+    case 119:
+      key = '\x1b[19~';
+      break;
+    // F9
+    case 120:
+      key = '\x1b[20~';
+      break;
+    // F10
+    case 121:
+      key = '\x1b[21~';
+      break;
+    // F11
+    case 122:
+      key = '\x1b[23~';
+      break;
+    // F12
+    case 123:
+      key = '\x1b[24~';
+      break;
+    default:
+      // a-z and space
+      if (ev.ctrlKey) {
+        if (ev.keyCode >= 65 && ev.keyCode <= 90) {
+          // Ctrl-A
+          if (this.screenKeys) {
+            if (!this.prefixMode && !this.selectMode && ev.keyCode === 65) {
+              this.enterPrefix();
+              return cancel(ev);
+            }
+          }
+          // Ctrl-V
+          if (this.prefixMode && ev.keyCode === 86) {
+            this.leavePrefix();
+            return;
+          }
+          // Ctrl-C
+          if ((this.prefixMode || this.selectMode) && ev.keyCode === 67) {
+            if (this.visualMode) {
+              setTimeout(function() {
+                self.leaveVisual();
+              }, 1);
+            }
+            return;
+          }
+          key = String.fromCharCode(ev.keyCode - 64);
+        } else if (ev.keyCode === 32) {
+          // NUL
+          key = String.fromCharCode(0);
+        } else if (ev.keyCode >= 51 && ev.keyCode <= 55) {
+          // escape, file sep, group sep, record sep, unit sep
+          key = String.fromCharCode(ev.keyCode - 51 + 27);
+        } else if (ev.keyCode === 56) {
+          // delete
+          key = String.fromCharCode(127);
+        } else if (ev.keyCode === 219) {
+          // ^[ - escape
+          key = String.fromCharCode(27);
+        } else if (ev.keyCode === 221) {
+          // ^] - group sep
+          key = String.fromCharCode(29);
+        }
+      } else if ((!this.isMac && ev.altKey) || (this.isMac && ev.metaKey)) {
+        if (ev.keyCode >= 65 && ev.keyCode <= 90) {
+          key = '\x1b' + String.fromCharCode(ev.keyCode + 32);
+        } else if (ev.keyCode === 192) {
+          key = '\x1b`';
+        } else if (ev.keyCode >= 48 && ev.keyCode <= 57) {
+          key = '\x1b' + (ev.keyCode - 48);
+        }
+      }
+      break;
+  }
+
+  if (!key) return true;
+
+  if (this.prefixMode) {
+    this.leavePrefix();
+    return cancel(ev);
+  }
+
+  if (this.selectMode) {
+    this.keySelect(ev, key);
+    return cancel(ev);
+  }
+
+  this.emit('keydown', ev);
+  this.emit('key', key, ev);
+
+  this.showCursor();
+  this.handler(key);
+
+  return cancel(ev);
+};
+
 Terminal.prototype.setgLevel = function(g) {
   this.glevel = g;
   this.charset = this.charsets[g];
@@ -1791,6 +2615,45 @@ Terminal.prototype.setgCharset = function(g, charset) {
   if (this.glevel === g) {
     this.charset = charset;
   }
+};
+
+Terminal.prototype.keyPress = function(ev) {
+  var key;
+
+  cancel(ev);
+
+  if (ev.charCode) {
+    key = ev.charCode;
+  } else if (ev.which == null) {
+    key = ev.keyCode;
+  } else if (ev.which !== 0 && ev.charCode !== 0) {
+    key = ev.which;
+  } else {
+    return false;
+  }
+
+  if (!key || ev.ctrlKey || ev.altKey || ev.metaKey) return false;
+
+  key = String.fromCharCode(key);
+
+  if (this.prefixMode) {
+    this.leavePrefix();
+    this.keyPrefix(ev, key);
+    return false;
+  }
+
+  if (this.selectMode) {
+    this.keySelect(ev, key);
+    return false;
+  }
+
+  this.emit('keypress', key, ev);
+  this.emit('key', key, ev);
+
+  this.showCursor();
+  this.handler(key);
+
+  return false;
 };
 
 Terminal.prototype.send = function(data) {
