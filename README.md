@@ -31,4 +31,3 @@ ls -l my_session.json
 	<script src="term.min.js"></script>
 	<script src="jquery.trex.min.js"></script>
 ```
-
