@@ -3,12 +3,6 @@
 	var pluginName = "trex",
 			defaults = {
 				/**
-				 * base path from where to load trex sessions. E.g. if
-				 * you recorded session foo, then foo.json is loaded from 
-				 * /sessions/foo.json by default.
-				 */
-				sessionPath: '/trex/examples/sessions/',
-				/**
 				 * Playback speed. Larger values slow down playback,
 				 * smaller values speed playback up. (speed > 0)
 				 */
@@ -35,7 +29,7 @@
 				return;
 			}
 
-			$.getJSON(this.settings['sessionPath'] + this.session + '.json', {},
+			$.getJSON(this.session, {},
 				function(data) {
 					self.term = new Terminal({
 						cols: parseInt(data.cols),
