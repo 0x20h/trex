@@ -109,7 +109,7 @@
 				current: 0,
 				// ignore first line of the script file
 				offset: this.script.indexOf("\n"),
-				playing: false
+				playing: this.settings.auto_start
 			};
 
 			// clear pending timeouts
@@ -146,15 +146,18 @@
 		 */
 		initControls: function() {
 			var self = this;
+
 			// initialize player controls
-			var pause = $('<input class="pause" value="pause" type="button"/>')
+			var pause = $('<input class="pause" value="' + (this.player.playing ? 'pause' : 'play') + '" type="button"/>')
 				.bind('click', function() {
 					self.toggle();
+					this.value = self.player.playing ? 'pause' : 'play';
 			});
 
 			var reset = $('<input value="reset" type="button"/>')
 				.bind('click', function() {
 					self.jump(0);
+					pause.val(self.player.playing ? 'pause' : 'play');
 			});
 
 			var faster = $('<input value="+" type="button"/>')
