@@ -32,7 +32,7 @@
 		init: function() {
 			var self = this;
 			// read which session to load
-			this.session = $(this.element).attr('data-session');
+			this.session = $(this.element).data('session');
 
 			if (!this.session) {
 				console.error('Please provide a session name via the' +
