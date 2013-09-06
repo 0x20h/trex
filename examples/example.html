@@ -1,38 +1,31 @@
 <!doctype html>
 <title>term.js</title>
+<link rel="stylesheet" href="css/ui-darkness/jquery-ui-1.10.3.custom.min.css">
 <style>
-	body {
-		background-color:#000;
+	.terminal-container {
+		overflow: hidden;
+		position: relative;
+		float:left;
 	}
 
-  h1 {
-    margin-bottom: 20px;
-    font: 20px/1.5 sans-serif;
-  }
-
-  .terminal {
-    border: #000 solid 5px;
-    font-family: "DejaVu Sans Mono", "Liberation Mono", monospace;
-    font-size: 12px;
-    color: #f0f0f0;
-    background: #000;
-	margin: 1em;
-  }
-
-  .terminal-cursor {
-    color: #000;
-    background: #f0f0f0;
-  }
+	.terminal-controls {
+		background: #000;
+		position: absolute;
+		width:100%;
+		bottom:0;
+		left:0;
+	}
 </style>
 <body>
-	<div class="terminal" data-session="introduction.json"></div>
+	<div class="trex" data-session="introduction.json"></div>
 
 	<script src="../src/term.js"></script>
 	<script src="http://code.jquery.com/jquery-2.0.2.min.js"></script>
+	<script src="../src/jquery-ui.min.js"></script>
 	<script src="../src/jquery.trex.js"></script>
 	<script>
 	$(function() {
-	  $('.terminal').trex({speed: .7, auto_start: true});
+	  $('.trex').trex({speed: 1, auto_start: false});
 	});
 	</script>
 </body>

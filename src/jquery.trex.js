@@ -14,10 +14,13 @@
 			};
 	
 	function Trex(element, options) {
-		this.element = element;
+		this.element = $(element);
+		this.wrapper = $('<div class="terminal-container"></div>');
+		this.element.append(this.wrapper);
 		this.settings = $.extend({}, defaults, options);
 		this._defaults = defaults;
 		this._name = pluginName;
+		this.controls = {};
 		this.init();
 	}
 
@@ -49,9 +52,10 @@
 						screenKeys: false
 					});
 
-					self.term.open(self.element);
+					self.term.open(self.wrapper.get(0));
 					self.reset();
 					self.initControls();
+
 					if (self.settings.auto_start) {
 						self.tick();
 					}
@@ -67,22 +71,26 @@
 		tick: function(ticks) {
 			var self = this,
 					ticks = ticks || 1;
-			
+
+			// check playback index	
 			if (this.timing.length <= this.player.current) {
 				return;
 			}
-
+			
+			var delay = this.timing[this.player.current][0];
 			var update = function() {
 				var count = 0;
-
-				for (var i=0; i < ticks; i++) {
+				// move #ticks ticks forward
+				for (var i = 0; i < ticks; i++) {
 					var element = self.timing[self.player.current++];
+					// count bytes to write
 					count += parseInt(element[1])
 				}
 
 				var content = self.script.substr(self.player.offset, count)
 				self.player.offset += count;
 				self.term.write(content);
+				self.controls.slider.slider('value', self.player.current)	
 
 				if (self.player.playing) {
 					self.tick();
@@ -95,7 +103,7 @@
 			} else {
 				this.timer = setTimeout(
 					update, 
-					this.timing[this.player.current][0] * 1000 * this.settings.speed
+					delay * 1000 * this.settings.speed
 				);
 			}
 		},
@@ -147,36 +155,49 @@
 		initControls: function() {
 			var self = this;
 
+			var controls = $('<div class="terminal-controls"></div>');
+
 			// initialize player controls
-			var pause = $('<input class="pause" value="' + (this.player.playing ? 'pause' : 'play') + '" type="button"/>')
-				.bind('click', function() {
+			this.controls['pause'] = $('<input class="pause" value="' + 
+				(this.player.playing ? 'pause' : 'play') + 
+				'" type="button"/>'
+			).bind('click', function() {
 					self.toggle();
 					this.value = self.player.playing ? 'pause' : 'play';
 			});
 
-			var reset = $('<input value="reset" type="button"/>')
-				.bind('click', function() {
-					self.jump(0);
+			this.controls['slider'] = $('<div></div>').slider({
+				value: 0,
+				min: 0,
+				max: this.timing.length,
+				step: 1,
+				slide: function(event, ui) {
+					self.jump(ui.value);
 					pause.val(self.player.playing ? 'pause' : 'play');
+				}
 			});
 
 			var faster = $('<input value="+" type="button"/>')
 				.bind('click', function() {
-					self.settings.speed = self.settings.speed > .25 ? self.settings.speed / 2 : .25;
+					self.settings.speed = self.settings.speed > .25 
+						? self.settings.speed / 2 
+						: .25;
 					self.term.focus();
 			});
 
 			var slower = $('<input value="-" type="button"/>')
 				.bind('click', function() {
-					self.settings.speed = self.settings.speed < 2 ? self.settings.speed * 2 : 2; 
+					self.settings.speed = self.settings.speed < 2 
+						? self.settings.speed * 2 
+						: 2; 
 					self.term.focus();
 			});
+			
+			controls
+				.append(this.controls.pause)
+				.append(this.controls.slider);
 
-			$(this.element)
-				.before(pause)
-				.before(reset)
-				.before(faster)
-				.before(slower);
+			this.wrapper.prepend(controls);
 		}
 	};
 
