@@ -78,13 +78,19 @@
 			}
 			
 			var delay = this.timing[this.player.current][0];
+
 			var update = function() {
 				var count = 0;
 				// move #ticks ticks forward
 				for (var i = 0; i < ticks; i++) {
+					// check playback index	
+					if (self.timing.length <= self.player.current) {
+						return;
+					}
+
 					var element = self.timing[self.player.current++];
 					// count bytes to write
-					count += parseInt(element[1])
+					count += parseInt(element[1]);
 				}
 
 				var content = self.script.substr(self.player.offset, count)
@@ -118,9 +124,11 @@
 		 */
 		reset: function() {
 			this.player = {
+				// current timing index
 				current: 0,
-				// ignore first line of the script file
+				// byte count. Ignore first line of the script file
 				offset: this.script.indexOf("\n"),
+				// player state
 				playing: false
 			};
 
@@ -136,7 +144,12 @@
 		 * @param {Number} index The target index.
 		 */
 		jump: function(index) {
-			this.reset();
+			if (index < this.player.current) {
+				this.reset();
+			} else {
+				index = index - this.player.current;
+			}
+
 			this.tick(index);
 		},
 
@@ -158,12 +171,17 @@
 		 */
 		initControls: function() {
 			var self = this,
-					fadeout_controls_timer;
+					fadeout_controls_timer,
+					last_move = 0,
+					doc = $(document);
+
+			console.log(document);
 
 			var controls = $('<div class="terminal-controls"></div>').
 				css({
-					backgroundColor: '#000',
-					height: '1.5em'
+					backgroundColor: '#111',
+					height: '2em',
+					opacity: 0.8
 				});
 
 			// initialize player controls
@@ -180,27 +198,57 @@
 					$(this).text(self.player.playing ? 'pause' : 'play');
 			});
 
-
 			this.controls['sliderWrapper'] = $('<div></div>').
 				css({
 					float:'left',
 					backgroundColor:'#FFF',
-					height:'.27em',
+					height:'.5em',
 					width:'88%',
 					left:'10%',
 					margin:'0 0 0 1%',
 					position:'absolute',
 					cursor:'pointer',
-					top:'50%'
+					top:'.8em'
 				}).
-				bind('mousedown', function(e) {
-					var el = self.controls.sliderWrapper;
-							// compute the corresponding timing index position
-							// substract 10 to point exactly to the "finger"
-							pos = parseInt(((e.clientX - el.position().left - 10) / el.outerWidth()) * self.timing.length);
-					
-					self.jump(pos);
+				on('click', function(e) { onMove(e) }).
+				on('mousedown', function(e) {
+					doc.
+						on('mousemove', onMove).
+						on('mouseup', onStop).
+						css({cursor: 'pointer'});
 			});
+
+			var onMove = function(e) {
+				var now = Date.now(),
+						// only update the terminal every 50msecs
+						update = now - last_move > 50;
+
+				last_move = update ? now : last_move;
+
+				if (!update) {
+					return;
+				}
+
+				// don't hide controls during slide	
+				clearTimeout(fadeout_controls_timer);
+
+				var el = self.controls.sliderWrapper,
+						// compute the corresponding timing index position
+						// substract 10 to point exactly to the "finger"
+						offset = ((e.originalEvent.clientX - el.position().left - 10) / el.width());
+
+				if (offset < 0) offset = 0;
+				if (offset > 1) offset = 1;
+
+				self.jump(parseInt(offset * self.timing.length));
+			};
+
+			var onStop = function(e) {
+				doc.
+					off('mousemove', onMove).
+					off('mouseup', onStop).
+					css({cursor: 'normal'});
+			};
 
 			this.controls['slider'] = $('<div></div>').
 				css({
