@@ -90,7 +90,11 @@
 				var content = self.script.substr(self.player.offset, count)
 				self.player.offset += count;
 				self.term.write(content);
-				self.controls.slider.slider('value', self.player.current)	
+
+				// update slider position
+				self.controls.slider.css({
+					width: parseInt(self.player.current / self.timing.length * 100) + '%'
+				});
 
 				if (self.player.playing) {
 					self.tick();
@@ -117,7 +121,7 @@
 				current: 0,
 				// ignore first line of the script file
 				offset: this.script.indexOf("\n"),
-				playing: this.settings.auto_start
+				playing: false
 			};
 
 			// clear pending timeouts
@@ -148,54 +152,71 @@
 
 			this.term.focus();
 		},
-
+		
 		/**
 		 * initialize player controls
 		 */
 		initControls: function() {
 			var self = this;
 
-			var controls = $('<div class="terminal-controls"></div>');
+			var controls = $('<div class="terminal-controls"></div>').
+				css({
+					backgroundColor: '#000',
+					height: '1.5em'
+				});
 
 			// initialize player controls
-			this.controls['pause'] = $('<input class="pause" value="' + 
-				(this.player.playing ? 'pause' : 'play') + 
-				'" type="button"/>'
-			).bind('click', function() {
+			this.controls['pause'] = $('<div>Play</div>').
+				css({
+					width: '10%',
+					height:'100%',
+					float: 'left',
+					color: '#FFF',
+					padding: '.25em 0 0 .25em'
+				}).
+				bind('click', function() {
 					self.toggle();
-					this.value = self.player.playing ? 'pause' : 'play';
+					$(this).text(self.player.playing ? 'pause' : 'play');
 			});
 
-			this.controls['slider'] = $('<div></div>').slider({
-				value: 0,
-				min: 0,
-				max: this.timing.length,
-				step: 1,
-				slide: function(event, ui) {
-					self.jump(ui.value);
-					pause.val(self.player.playing ? 'pause' : 'play');
-				}
-			});
 
-			var faster = $('<input value="+" type="button"/>')
-				.bind('click', function() {
-					self.settings.speed = self.settings.speed > .25 
-						? self.settings.speed / 2 
-						: .25;
-					self.term.focus();
-			});
+			this.controls['sliderWrapper'] = $('<div></div>').
+				css({
+					float:'left',
+					backgroundColor:'#FFF',
+					height:'3px',
+					width:'88%',
+					left:'10%',
+					margin:'0 0 0 1%',
+					position:'absolute',
+					cursor:'pointer',
+					top:'10px'
+				}).
+				bind('mousedown', function(e) { self.controls.sliderWrapper.bind('mousemove', drag)}).
+				bind('mouseup', function(e) {
+					self.controls.sliderWrapper.off('mousemove', drag)
+				});
 
-			var slower = $('<input value="-" type="button"/>')
-				.bind('click', function() {
-					self.settings.speed = self.settings.speed < 2 
-						? self.settings.speed * 2 
-						: 2; 
-					self.term.focus();
-			});
-			
+			var drag = function(e) {
+				var el = self.controls.sliderWrapper;
+						// compute the corresponding timing index position
+						pos = parseInt(((e.clientX - el.position().left) / el.outerWidth()) * self.timing.length);
+				
+				self.jump(pos);
+			};
+
+			this.controls['slider'] = $('<div></div>').
+				css({
+					backgroundColor:'red',
+					height:'3px',
+					width:'0%',
+					left:'0',
+				});
+
+			this.controls.sliderWrapper.append(this.controls.slider);
 			controls
 				.append(this.controls.pause)
-				.append(this.controls.slider);
+				.append(this.controls.sliderWrapper);
 
 			this.wrapper.prepend(controls);
 		}
