@@ -157,7 +157,8 @@
 		 * initialize player controls
 		 */
 		initControls: function() {
-			var self = this;
+			var self = this,
+					fadeout_controls_timer;
 
 			var controls = $('<div class="terminal-controls"></div>').
 				css({
@@ -184,41 +185,47 @@
 				css({
 					float:'left',
 					backgroundColor:'#FFF',
-					height:'3px',
+					height:'.27em',
 					width:'88%',
 					left:'10%',
 					margin:'0 0 0 1%',
 					position:'absolute',
 					cursor:'pointer',
-					top:'10px'
+					top:'50%'
 				}).
-				bind('mousedown', function(e) { self.controls.sliderWrapper.bind('mousemove', drag)}).
-				bind('mouseup', function(e) {
-					self.controls.sliderWrapper.off('mousemove', drag)
-				});
-
-			var drag = function(e) {
-				var el = self.controls.sliderWrapper;
-						// compute the corresponding timing index position
-						pos = parseInt(((e.clientX - el.position().left) / el.outerWidth()) * self.timing.length);
-				
-				self.jump(pos);
-			};
+				bind('mousedown', function(e) {
+					var el = self.controls.sliderWrapper;
+							// compute the corresponding timing index position
+							// substract 10 to point exactly to the "finger"
+							pos = parseInt(((e.clientX - el.position().left - 10) / el.outerWidth()) * self.timing.length);
+					
+					self.jump(pos);
+			});
 
 			this.controls['slider'] = $('<div></div>').
 				css({
 					backgroundColor:'red',
-					height:'3px',
+					height:'100%',
 					width:'0%',
 					left:'0',
 				});
 
 			this.controls.sliderWrapper.append(this.controls.slider);
+			
 			controls
 				.append(this.controls.pause)
 				.append(this.controls.sliderWrapper);
 
 			this.wrapper.prepend(controls);
+			
+			this.element.bind('mouseenter', function() {
+				clearTimeout(fadeout_controls_timer);
+				controls.fadeIn('fast');
+			}).bind('mouseleave', function() {
+				fadeout_controls_timer = setTimeout(function() {
+					controls.fadeOut('slow');
+				}, 600);
+			});
 		}
 	};
 
