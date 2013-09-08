@@ -15,7 +15,11 @@
 	
 	function Trex(element, options) {
 		this.element = $(element);
-		this.wrapper = $('<div class="terminal-container"></div>');
+		this.wrapper = $('<div></div>').css({
+			overflow: 'hidden',
+			position: 'relative',
+			float: 'left'
+		});
 		this.element.append(this.wrapper);
 		this.settings = $.extend({}, defaults, options);
 		this._defaults = defaults;
@@ -177,8 +181,12 @@
 
 			console.log(document);
 
-			var controls = $('<div class="terminal-controls"></div>').
+			var controls = $('<div</div>').
 				css({
+					position: 'absolute',
+					width: '100%',
+					bottom: '0',
+					left: '0',
 					backgroundColor: '#111',
 					height: '2em',
 					opacity: 0.8
