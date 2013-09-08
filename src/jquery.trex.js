@@ -6,12 +6,40 @@
 				 * Playback speed. Larger values slow down playback,
 				 * smaller values speed playback up. (speed > 0)
 				 */
-				speed: 1,	
+				speed: 1,
 				/**
 				 * Automatically start playing when initialized.
 				 */
 				auto_start: false
-			};
+			},
+			styles = "" +
+				".trex .terminal-controls {" +
+				"		position: absolute;" +
+				"		width: 100%;" +
+				"		bottom: 0;" +
+				"		left: 0;" +
+				"		background-color: #111;" +
+				"		height: 2em;" +
+				"		opacity: 0.9;" +
+				"}" +
+				".trex .terminal-controls div.play {" +
+				"    width: 0;" +
+				"    height: 0;" +
+				"    border-style: solid;" +
+				"    border-color: transparent transparent transparent #EEE;" +
+				"    border-width: 8px 8px 8px 12px;" +
+				"    margin: 8px 0 0 11px;" +
+				"    cursor: pointer;" +
+				"}" +
+				".trex .terminal-controls div.pause {" +
+				"    width: 2px;" +
+				"    height: 16px;" +
+				"    border: 4px solid #EEE;" +
+				"    border-top: none;" +
+				"    border-bottom: none;" +
+				"    margin: 8px 0 0 11px;" +
+				"    cursor: pointer;" +
+				"}";
 	
 	function Trex(element, options) {
 		this.element = $(element);
@@ -84,8 +112,9 @@
 			var self = this,
 					ticks = ticks || 1;
 
-			// check playback index	
+			// check playback index. Are we at the end of the script?
 			if (this.timing.length <= this.player.current) {
+				this.element.trigger('toggle');
 				return;
 			}
 			
@@ -171,11 +200,18 @@
 		toggle: function() {
 			this.player.playing = !this.player.playing;
 
+			
 			if (this.player.playing) {
-				this.tick();
+				if (this.player.current == this.timing.length) {
+					this.jump(0);
+
+				} else {
+					this.tick();
+				}
 			}
 
 			this.term.focus();
+			this.element.trigger('toggle');
 		},
 		
 		/**
@@ -186,22 +222,11 @@
 					last_move = 0,
 					doc = $(document);
 
-			var controls = $('<div</div>').
-				css({
-					position: 'absolute',
-					width: '100%',
-					bottom: '0',
-					left: '0',
-					backgroundColor: '#111',
-					height: '2em',
-					opacity: 0.8
-				});
-
 			this._initPlayButton();
 			this._initSlider();
 
-			controls
-				.append(this.controls.pause)
+			var controls = $('<div class="terminal-controls"></div>')
+				.append(this.controls.play_pause)
 				.append(this.controls.sliderWrapper);
 
 			this.wrapper.prepend(controls);
@@ -222,17 +247,13 @@
 			var self = this;
 			
 			// initialize player controls
-			this.controls['pause'] = $('<div class="pause"></div>').
-				css({
-					width: '10%',
-					height:'100%',
-					float: 'left',
-					color: '#FFF',
-					padding: '.25em 0 0 .25em'
-				}).
+			this.controls['play_pause'] = $('<div class="play"></div>').
 				on('click', function() {
 					self.toggle();
-					$(this).text(self.player.playing ? 'pause' : 'play');
+			});
+
+			this.element.on('toggle', function(e) {
+					self.controls['play_pause'].toggleClass('pause').toggleClass( 'play');
 			});
 		},
 
@@ -251,8 +272,8 @@
 					backgroundColor:'#FFF',
 					height:'.5em',
 					width:'88%',
-					left:'10%',
-					margin:'0 0 0 1%',
+					left:'6%',
+					margin:'0 0 0 0',
 					position:'absolute',
 					cursor:'pointer',
 					top:'.8em'
@@ -329,6 +350,8 @@
 	};
 
 	$.fn[pluginName] = function (options) {
+		$("<style>" + styles + "</style>").appendTo('head');
+
 		return this.each(function() {
 			if (!$.data(this, "plugin_" + pluginName)) {
 				$.data(this, "plugin_" + pluginName, new Trex(this, options));
