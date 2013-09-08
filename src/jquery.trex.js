@@ -44,6 +44,14 @@
 				return;
 			}
 
+			// This disables selection mode when
+			// the user holds down the mousebutton 
+			// when sliding.
+			// TODO restore old value?
+			$('body').css({
+					'-webkit-user-select': 'none'
+			});
+
 			$.getJSON(this.session, {},
 				function(data) {
 					self.script = data.script;
@@ -175,11 +183,8 @@
 		 */
 		initControls: function() {
 			var self = this,
-					fadeout_controls_timer,
 					last_move = 0,
 					doc = $(document);
-
-			console.log(document);
 
 			var controls = $('<div</div>').
 				css({
@@ -192,8 +197,32 @@
 					opacity: 0.8
 				});
 
+			this._initPlayButton();
+			this._initSlider();
+
+			controls
+				.append(this.controls.pause)
+				.append(this.controls.sliderWrapper);
+
+			this.wrapper.prepend(controls);
+			
+			this.element.on('mouseenter', function() {
+				clearTimeout(self.controls.fadeout_controls_timer);
+				controls.fadeIn('fast');
+			}).on('mouseleave', function() {
+				self.controls.fadeout_controls_timer = setTimeout(function() {
+					controls.fadeOut('slow');
+				}, 1200);
+			});
+		},
+/**
+ * Initialize Play/Pause control.
+ */
+		_initPlayButton: function() {
+			var self = this;
+			
 			// initialize player controls
-			this.controls['pause'] = $('<div>Play</div>').
+			this.controls['pause'] = $('<div class="pause"></div>').
 				css({
 					width: '10%',
 					height:'100%',
@@ -201,10 +230,20 @@
 					color: '#FFF',
 					padding: '.25em 0 0 .25em'
 				}).
-				bind('click', function() {
+				on('click', function() {
 					self.toggle();
 					$(this).text(self.player.playing ? 'pause' : 'play');
 			});
+		},
+
+/**
+ * Initialize slider control.
+ */
+		_initSlider: function() {
+			var self = this,
+					last_move = 0,
+					doc = $(document),
+					player_state;
 
 			this.controls['sliderWrapper'] = $('<div></div>').
 				css({
@@ -220,11 +259,17 @@
 				}).
 				on('click', function(e) { onMove(e) }).
 				on('mousedown', function(e) {
+					// stop player when sliding	
+					player_state = self.player.playing;
+					self.player.playing = false;
+
 					doc.
+						css({
+							cursor: 'pointer'
+						}).
 						on('mousemove', onMove).
-						on('mouseup', onStop).
-						css({cursor: 'pointer'});
-			});
+						on('mouseup', onStop);
+				});
 
 			var onMove = function(e) {
 				var now = Date.now(),
@@ -238,7 +283,7 @@
 				}
 
 				// don't hide controls during slide	
-				clearTimeout(fadeout_controls_timer);
+				clearTimeout(self.controls.fadeout_controls_timer);
 
 				var el = self.controls.sliderWrapper,
 						// compute the corresponding timing index position
@@ -251,11 +296,17 @@
 				self.jump(parseInt(offset * self.timing.length));
 			};
 
-			var onStop = function(e) {
+			var onStop = function(e) {	
 				doc.
 					off('mousemove', onMove).
 					off('mouseup', onStop).
-					css({cursor: 'normal'});
+					css({cursor: 'auto'});
+
+				self.player.playing = player_state;
+
+				if (self.player.playing) {
+					self.tick();
+				}
 			};
 
 			this.controls['slider'] = $('<div></div>').
@@ -267,21 +318,13 @@
 				});
 
 			this.controls.sliderWrapper.append(this.controls.slider);
-			
-			controls
-				.append(this.controls.pause)
-				.append(this.controls.sliderWrapper);
+		},
 
-			this.wrapper.prepend(controls);
-			
-			this.element.bind('mouseenter', function() {
-				clearTimeout(fadeout_controls_timer);
-				controls.fadeIn('fast');
-			}).bind('mouseleave', function() {
-				fadeout_controls_timer = setTimeout(function() {
-					controls.fadeOut('slow');
-				}, 600);
-			});
+/**
+ * Initialize fullscreen control.
+ */
+		_initFullscreen: function() {
+
 		}
 	};
 
