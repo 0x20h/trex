@@ -11,43 +11,12 @@
 				 * Automatically start playing when initialized.
 				 */
 				auto_start: false
-			},
-			styles = "" +
-				".trex .terminal-controls {" +
-				"		position: absolute;" +
-				"		width: 100%;" +
-				"		bottom: 0;" +
-				"		left: 0;" +
-				"		background-color: #111;" +
-				"		height: 2em;" +
-				"		opacity: 0.9;" +
-				"}" +
-				".trex .terminal-controls div.play {" +
-				"    width: 0;" +
-				"    height: 0;" +
-				"    border-style: solid;" +
-				"    border-color: transparent transparent transparent #EEE;" +
-				"    border-width: 8px 8px 8px 12px;" +
-				"    margin: 8px 0 0 11px;" +
-				"    cursor: pointer;" +
-				"}" +
-				".trex .terminal-controls div.pause {" +
-				"    width: 2px;" +
-				"    height: 16px;" +
-				"    border: 4px solid #EEE;" +
-				"    border-top: none;" +
-				"    border-bottom: none;" +
-				"    margin: 8px 0 0 11px;" +
-				"    cursor: pointer;" +
-				"}";
+			};
 	
+
 	function Trex(element, options) {
 		this.element = $(element);
-		this.wrapper = $('<div></div>').css({
-			overflow: 'hidden',
-			position: 'relative',
-			float: 'left'
-		});
+		this.wrapper = $('<div class="trex-wrapper"></div>');
 		this.element.append(this.wrapper);
 		this.settings = $.extend({}, defaults, options);
 		this._defaults = defaults;
@@ -71,14 +40,6 @@
 					'data-session property.');
 				return;
 			}
-
-			// This disables selection mode when
-			// the user holds down the mousebutton 
-			// when sliding.
-			// TODO restore old value?
-			$('body').css({
-					'-webkit-user-select': 'none'
-			});
 
 			$.getJSON(this.session, {},
 				function(data) {
@@ -266,18 +227,7 @@
 					doc = $(document),
 					player_state;
 
-			this.controls['sliderWrapper'] = $('<div></div>').
-				css({
-					float:'left',
-					backgroundColor:'#FFF',
-					height:'.5em',
-					width:'88%',
-					left:'6%',
-					margin:'0 0 0 0',
-					position:'absolute',
-					cursor:'pointer',
-					top:'.8em'
-				}).
+			this.controls['sliderWrapper'] = $('<div class="slider-wrapper"></div>').
 				on('click', function(e) { onMove(e) }).
 				on('mousedown', function(e) {
 					// stop player when sliding	
@@ -330,14 +280,7 @@
 				}
 			};
 
-			this.controls['slider'] = $('<div></div>').
-				css({
-					backgroundColor:'red',
-					height:'100%',
-					width:'0%',
-					left:'0',
-				});
-
+			this.controls['slider'] = $('<div class="slider"></div>');
 			this.controls.sliderWrapper.append(this.controls.slider);
 		},
 
@@ -350,8 +293,6 @@
 	};
 
 	$.fn[pluginName] = function (options) {
-		$("<style>" + styles + "</style>").appendTo('head');
-
 		return this.each(function() {
 			if (!$.data(this, "plugin_" + pluginName)) {
 				$.data(this, "plugin_" + pluginName, new Trex(this, options));

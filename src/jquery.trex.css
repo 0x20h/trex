@@ -1,0 +1,59 @@
+/* @TODO this should probably only be in sliding context */
+body {
+	-webkit-user-select: none;
+}
+
+.trex-wrapper {
+	overflow: hidden;
+	position: relative;
+	float: left;
+}
+
+.trex-wrapper .terminal-controls {
+	position: absolute;
+	width: 100%;
+	bottom: 0;
+	left: 0;
+	background-color: #111;
+	height: 2em;
+	opacity: 0.9;
+}
+
+.trex-wrapper .terminal-controls div.play {
+	width: 0;
+	height: 0;
+	border-style: solid;
+	border-color: transparent transparent transparent #EEE;
+	border-width: 8px 8px 8px 12px;
+	margin: 8px 0 0 11px;
+	cursor: pointer;
+}
+
+.trex-wrapper .terminal-controls div.pause {
+	width: 2px;
+	height: 16px;
+	border: 4px solid #EEE;
+	border-top: none;
+	border-bottom: none;
+	margin: 8px 0 0 11px;
+	cursor: pointer;
+}
+
+.trex-wrapper .terminal-controls .slider-wrapper {
+	float: left;
+	background-color: #FFF;
+	height: .5em;
+	width: 88%;
+	left: 6%;
+	margin: 0 0 0 0;
+	position: absolute;
+	cursor: pointer;
+	top: .8em;
+}
+
+.trex-wrapper .terminal-controls .slider {
+	background-color: red;
+	height: 100%;
+	width: 0%;
+	left: 0;
+}
