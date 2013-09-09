@@ -12,7 +12,7 @@
 				 */
 				auto_start: false
 			};
-	
+
 
 	function Trex(element, options) {
 		this.element = $(element);
@@ -22,6 +22,7 @@
 		this._defaults = defaults;
 		this._name = pluginName;
 		this.controls = {};
+		this.timer;
 		this.init();
 	}
 
@@ -45,7 +46,16 @@
 				function(data) {
 					self.script = data.script;
 					self.timing = data.timing;
+					// accumulate timings. Create an "elapsed time" index
+					self.elapsed = self.timing.reduce(
+						function(p,c) { 
+							console.log([p[p.length - 1],c[0]]);
+							return p.concat(Number(p[p.length - 1]) + Number(c[0]));
+						}, 
+						[0]
+					);
 
+		console.log(self.elapsed);
 					self.term = new Terminal({
 						cols: parseInt(data.cols),
 						rows: parseInt(data.rows),
@@ -75,7 +85,12 @@
 
 			// check playback index. Are we at the end of the script?
 			if (this.timing.length <= this.player.current) {
-				this.element.trigger('toggle');
+				clearTimeout(this.timer);
+				
+				if (this.player.playing) {
+					this.toggle();
+				}
+
 				return;
 			}
 			
@@ -83,14 +98,11 @@
 
 			var update = function() {
 				var count = 0;
+				console.log([ticks, self.player.current, self.timing.length]);
 				// move #ticks ticks forward
 				for (var i = 0; i < ticks; i++) {
-					// check playback index	
-					if (self.timing.length <= self.player.current) {
-						return;
-					}
-
 					var element = self.timing[self.player.current++];
+
 					// count bytes to write
 					count += parseInt(element[1]);
 				}
@@ -104,34 +116,31 @@
 					width: parseInt(self.player.current / self.timing.length * 100) + '%'
 				});
 
-				if (self.player.playing) {
+				if (self.player.playing && self.timing.length > self.player.current) {
 					self.tick();
 				}
 			};
 
-			// fast-forward	
-			if (ticks > 1) {
-				update();
-			} else {
-				this.timer = setTimeout(
-					update, 
-					delay * 1000 * this.settings.speed
-				);
-			}
+			clearTimeout(this.timer);
+			//console.log('timer, speed: ' + this.settings.speed);
+			this.timer = setTimeout(
+				update, 
+				ticks > 1 ? 0 : delay * 1000 * this.settings.speed
+			);
 		},
 		
 
 		/**
-		 * Reset player for the first position.
+		 * Reset player.
 		 */
 		reset: function() {
 			this.player = {
 				// current timing index
 				current: 0,
-				// byte count. Ignore first line of the script file
+				// byte offset counter. Ignores first line of the script file (metadata)
 				offset: this.script.indexOf("\n"),
 				// player state
-				playing: false
+				playing: this.player ? this.player.playing : false
 			};
 
 			// clear pending timeouts
@@ -160,12 +169,10 @@
 		 */
 		toggle: function() {
 			this.player.playing = !this.player.playing;
-
-			
+			console.log('player state: ' + this.player.playing);
 			if (this.player.playing) {
-				if (this.player.current == this.timing.length) {
+				if (this.timing.length - 1 <= this.player.current) {
 					this.jump(0);
-
 				} else {
 					this.tick();
 				}
@@ -185,19 +192,24 @@
 
 			this._initPlayButton();
 			this._initSlider();
+			this._initFullscreen();
+			this._initTimeInfo();
 
-			var controls = $('<div class="terminal-controls"></div>')
-				.append(this.controls.play_pause)
-				.append(this.controls.sliderWrapper);
+			var controls = $('<div class="terminal-controls"></div>').
+				append(this.controls.play_pause).
+				append(this.controls.sliderWrapper).
+				append(this.controls.fullscreen).
+				append(this.controls.time_info);
 
 			this.wrapper.prepend(controls);
-			
+
+			// show/hide controls
 			this.element.on('mouseenter', function() {
 				clearTimeout(self.controls.fadeout_controls_timer);
 				controls.fadeIn('fast');
 			}).on('mouseleave', function() {
 				self.controls.fadeout_controls_timer = setTimeout(function() {
-					controls.fadeOut('slow');
+					//controls.fadeOut('slow');
 				}, 1200);
 			});
 		},
@@ -217,6 +229,32 @@
 					self.controls['play_pause'].toggleClass('pause').toggleClass( 'play');
 			});
 		},
+
+/**
+ * Initialize "elapsed time" control.
+ */
+		_initTimeInfo: function() {
+			var self = this,
+					total = this.elapsed[this.elapsed.length - 1],
+					elapsed = this.elapsed[this.player.current],
+					format = function(sec) {
+					
+						var sec_num = parseInt(sec, 10); // don't forget the second parm
+						var minutes = Math.floor(sec_num / 60);
+						var seconds = sec_num - (minutes * 60);
+
+						if (minutes < 10) {minutes = "0"+minutes;}
+						if (seconds < 10) {seconds = "0"+seconds;}
+						return minutes + ':' + seconds;
+					};
+
+			this.controls['time_info'] = $('<div class="time-info"><span class="elapsed">' + format(elapsed) +'</span>/'+format(total)+'</div>');
+			// update timer
+			setInterval(function() {
+				self.controls['time_info'].find('.elapsed').text(format(self.elapsed[self.player.current]));
+			}, 1000);
+		},
+
 
 /**
  * Initialize slider control.
@@ -244,16 +282,20 @@
 
 			var onMove = function(e) {
 				var now = Date.now(),
-						// only update the terminal every 50msecs
 						update = now - last_move > 50;
 
 				last_move = update ? now : last_move;
 
+				// clear frame timer
+				clearTimeout(this.timer);
+
+				// update the terminal at most every 50msecs
 				if (!update) {
 					return;
 				}
 
 				// don't hide controls during slide	
+				// @TODO implement slide event and use a callback
 				clearTimeout(self.controls.fadeout_controls_timer);
 
 				var el = self.controls.sliderWrapper,
@@ -288,7 +330,10 @@
  * Initialize fullscreen control.
  */
 		_initFullscreen: function() {
-
+			this.controls['fullscreen'] = $('<div class="fullscreen"><a></a></div>').
+				css({
+					float:'left'
+				});
 		}
 	};
 

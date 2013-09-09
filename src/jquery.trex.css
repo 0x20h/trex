@@ -15,8 +15,18 @@ body {
 	bottom: 0;
 	left: 0;
 	background-color: #111;
-	height: 2em;
+	height: 2.6em;
 	opacity: 0.9;
+}
+
+.trex-wrapper .terminal-controls .time-info {
+	float: left;
+	color: #EEE;
+	font-size: .7em;
+	top: 2.2em;
+	left: 6%;
+	position: absolute;
+
 }
 
 .trex-wrapper .terminal-controls div.play {
@@ -24,18 +34,18 @@ body {
 	height: 0;
 	border-style: solid;
 	border-color: transparent transparent transparent #EEE;
-	border-width: 8px 8px 8px 12px;
-	margin: 8px 0 0 11px;
+	border-width: .7em .8em .7em 1.1em;
+	margin: 0.7em 0 0 .5em;
 	cursor: pointer;
 }
 
 .trex-wrapper .terminal-controls div.pause {
-	width: 2px;
-	height: 16px;
-	border: 4px solid #EEE;
+	width: .25em;
+	height: 1.3em;
+	border: .4em solid #EEE;
 	border-top: none;
 	border-bottom: none;
-	margin: 8px 0 0 11px;
+	margin: 0.7em 0 0 .5em;
 	cursor: pointer;
 }
 
@@ -43,7 +53,7 @@ body {
 	float: left;
 	background-color: #FFF;
 	height: .5em;
-	width: 88%;
+	width: 85%;
 	left: 6%;
 	margin: 0 0 0 0;
 	position: absolute;
