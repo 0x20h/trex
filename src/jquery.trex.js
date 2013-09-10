@@ -198,7 +198,6 @@
 			var controls = $('<div class="terminal-controls"></div>').
 				append(this.controls.play_pause).
 				append(this.controls.sliderWrapper).
-				append(this.controls.fullscreen).
 				append(this.controls.time_info);
 
 			this.wrapper.prepend(controls);
@@ -328,12 +327,10 @@
 
 /**
  * Initialize fullscreen control.
+ * @TODO implement css buttons
  */
 		_initFullscreen: function() {
-			this.controls['fullscreen'] = $('<div class="fullscreen"><a></a></div>').
-				css({
-					float:'left'
-				});
+			this.controls['fullscreen'] = $('<div class="fullscreen"><a></a></div>');
 		}
 	};
 

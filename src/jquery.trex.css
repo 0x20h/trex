@@ -21,9 +21,10 @@ body {
 
 .trex-wrapper .terminal-controls .time-info {
 	float: left;
+	font-family: monospace;
 	color: #EEE;
 	font-size: .7em;
-	top: 2.2em;
+	top: 2.9em;
 	left: 6%;
 	position: absolute;
 
@@ -49,11 +50,11 @@ body {
 	cursor: pointer;
 }
 
-.trex-wrapper .terminal-controls .slider-wrapper {
+.trex-wrapper .terminal-controls div.slider-wrapper {
 	float: left;
 	background-color: #FFF;
 	height: .5em;
-	width: 85%;
+	width: 92%;
 	left: 6%;
 	margin: 0 0 0 0;
 	position: absolute;
@@ -61,7 +62,7 @@ body {
 	top: .8em;
 }
 
-.trex-wrapper .terminal-controls .slider {
+.trex-wrapper .terminal-controls div.slider {
 	background-color: red;
 	height: 100%;
 	width: 0%;
