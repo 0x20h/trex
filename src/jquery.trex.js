@@ -209,7 +209,7 @@
 				controls.fadeIn('fast');
 			}).on('mouseleave', function() {
 				self.controls.fadeout_controls_timer = setTimeout(function() {
-					//controls.fadeOut('slow');
+					controls.fadeOut('slow');
 				}, 1200);
 			});
 		},
