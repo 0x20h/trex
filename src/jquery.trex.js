@@ -49,13 +49,11 @@
 					// accumulate timings. Create an "elapsed time" index
 					self.elapsed = self.timing.reduce(
 						function(p,c) { 
-							console.log([p[p.length - 1],c[0]]);
 							return p.concat(Number(p[p.length - 1]) + Number(c[0]));
 						}, 
 						[0]
 					);
 
-		console.log(self.elapsed);
 					self.term = new Terminal({
 						cols: parseInt(data.cols),
 						rows: parseInt(data.rows),
@@ -98,25 +96,24 @@
 
 			var update = function() {
 				var count = 0;
-				console.log([ticks, self.player.current, self.timing.length]);
 				// move #ticks ticks forward
 				for (var i = 0; i < ticks; i++) {
-					var element = self.timing[self.player.current++];
+					var [, bytes] = self.timing[self.player.current++];
 
 					// count bytes to write
-					count += parseInt(element[1]);
+					count += parseInt(bytes);
 				}
 
-				var content = self.script.substr(self.player.offset, count)
+				var buffer = self.script.substr(self.player.offset, count);
 				self.player.offset += count;
-				self.term.write(content);
+				self.term.write(buffer);
 
 				// update slider position
 				self.controls.slider.css({
 					width: parseInt(self.player.current / self.timing.length * 100) + '%'
 				});
 
-				if (self.player.playing && self.timing.length > self.player.current) {
+				if (self.player.playing) {
 					self.tick();
 				}
 			};
@@ -138,7 +135,7 @@
 				// current timing index
 				current: 0,
 				// byte offset counter. Ignores first line of the script file (metadata)
-				offset: this.script.indexOf("\n"),
+				offset: this.script.indexOf("\n") + 1,
 				// player state
 				playing: this.player ? this.player.playing : false
 			};
@@ -300,7 +297,7 @@
 				var el = self.controls.sliderWrapper,
 						// compute the corresponding timing index position
 						// substract 10 to point exactly to the "finger"
-						offset = ((e.originalEvent.clientX - el.position().left - 10) / el.width());
+						offset = ((e.originalEvent.clientX - el.position().left) / el.width());
 
 				if (offset < 0) offset = 0;
 				if (offset > 1) offset = 1;
