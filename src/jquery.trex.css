@@ -1,6 +1,9 @@
 /* @TODO this should probably only be in sliding context */
 body {
 	-webkit-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
 }
 
 .trex-wrapper {
@@ -30,7 +33,7 @@ body {
 
 }
 
-.trex-wrapper .terminal-controls div.play {
+.trex-wrapper .terminal-controls .play {
 	width: 0;
 	height: 0;
 	border-style: solid;
@@ -40,7 +43,7 @@ body {
 	cursor: pointer;
 }
 
-.trex-wrapper .terminal-controls div.pause {
+.trex-wrapper .terminal-controls .pause {
 	width: .25em;
 	height: 1.3em;
 	border: .4em solid #EEE;
@@ -50,7 +53,7 @@ body {
 	cursor: pointer;
 }
 
-.trex-wrapper .terminal-controls div.slider-wrapper {
+.trex-wrapper .terminal-controls .slider-wrapper {
 	float: left;
 	background-color: #FFF;
 	height: .5em;
@@ -62,9 +65,9 @@ body {
 	top: .8em;
 }
 
-.trex-wrapper .terminal-controls div.slider {
+.trex-wrapper .terminal-controls .slider {
 	background-color: red;
 	height: 100%;
-	width: 0%;
+	width: 0;
 	left: 0;
 }
