@@ -1,3 +1,24 @@
+/**
+ * jquery.trex.js - html5 terminal recordings player based on term.js.
+ *
+ * Copyright (c) 2013 Jan Kohlhof <kohj@informatik.uni-marburg.de>
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this 
+ * software and associated documentation files (the "Software"), to deal in the Software 
+ * without restriction, including without limitation the rights to use, copy, modify, merge, 
+ * publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons 
+ * to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or 
+ * substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, 
+ * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR 
+ * PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE 
+ * FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, 
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE 
+ * SOFTWARE.
+ */
 ;(function($, window, document, undefined) {
 
 	var pluginName = "trex",
@@ -22,7 +43,7 @@
 		this._defaults = defaults;
 		this._name = pluginName;
 		this.controls = {};
-		this.timer;
+		this.timer = undefined;
 		this.init();
 	}
 
@@ -55,8 +76,8 @@
 					);
 
 					self.term = new Terminal({
-						cols: parseInt(data.cols),
-						rows: parseInt(data.rows),
+						cols: parseInt(data.cols, 10),
+						rows: parseInt(data.rows, 10),
 						useStyle: true,
 						screenKeys: false
 					});
@@ -78,8 +99,11 @@
 		 * @param {Number} ticks Number of ticks to move forward [default=1]
 		 */
 		tick: function(ticks) {
-			var self = this,
-					ticks = ticks || 1;
+			var self = this;
+			
+			if (!ticks) {
+				ticks = 1;
+			}
 
 			// check playback index. Are we at the end of the script?
 			if (this.timing.length <= this.player.current) {
@@ -98,10 +122,11 @@
 				var count = 0;
 				// move #ticks ticks forward
 				for (var i = 0; i < ticks; i++) {
-					var [, bytes] = self.timing[self.player.current++];
+					var element = self.timing[self.player.current++],
+							bytes = element[1];
 
 					// count bytes to write
-					count += parseInt(bytes);
+					count += parseInt(bytes, 10);
 				}
 
 				var buffer = self.script.substr(self.player.offset, count);
@@ -110,7 +135,7 @@
 
 				// update slider position
 				self.controls.slider.css({
-					width: parseInt(self.player.current / self.timing.length * 100) + '%'
+					width: parseInt(self.player.current / self.timing.length * 100, 10) + '%'
 				});
 
 				if (self.player.playing) {
@@ -216,13 +241,13 @@
 			var self = this;
 			
 			// initialize player controls
-			this.controls['play_pause'] = $('<div class="play"></div>').
+			this.controls.play_pause = $('<div class="play"></div>').
 				on('click', function() {
 					self.toggle();
 			});
 
 			this.element.on('toggle', function(e) {
-					self.controls['play_pause'].toggleClass('pause').toggleClass( 'play');
+					self.controls.play_pause.toggleClass('pause').toggleClass( 'play');
 			});
 		},
 
@@ -244,10 +269,10 @@
 						return minutes + ':' + seconds;
 					};
 
-			this.controls['time_info'] = $('<div class="time-info"><span class="elapsed">' + format(elapsed) +'</span>/'+format(total)+'</div>');
+			this.controls.time_info = $('<div class="time-info"><span class="elapsed">' + format(elapsed) +'</span>/'+format(total)+'</div>');
 			// update timer
 			setInterval(function() {
-				self.controls['time_info'].find('.elapsed').text(format(self.elapsed[self.player.current]));
+				self.controls.time_info.find('.elapsed').text(format(self.elapsed[self.player.current]));
 			}, 1000);
 		},
 
@@ -261,8 +286,8 @@
 					doc = $(document),
 					player_state;
 
-			this.controls['sliderWrapper'] = $('<div class="slider-wrapper"></div>').
-				on('click', function(e) { onMove(e) }).
+			this.controls.sliderWrapper = $('<div class="slider-wrapper"></div>').
+				on('click', function(e) { onMove(e); }).
 				on('mousedown', function(e) {
 					// stop player when sliding	
 					player_state = self.player.playing;
@@ -302,7 +327,7 @@
 				if (offset < 0) offset = 0;
 				if (offset > 1) offset = 1;
 
-				self.jump(parseInt(offset * self.timing.length));
+				self.jump(parseInt(offset * self.timing.length, 10));
 			};
 
 			var onStop = function(e) {	
@@ -318,7 +343,7 @@
 				}
 			};
 
-			this.controls['slider'] = $('<div class="slider"></div>');
+			this.controls.slider = $('<div class="slider"></div>');
 			this.controls.sliderWrapper.append(this.controls.slider);
 		},
 
@@ -327,7 +352,7 @@
  * @TODO implement css buttons
  */
 		_initFullscreen: function() {
-			this.controls['fullscreen'] = $('<div class="fullscreen"><a></a></div>');
+			this.controls.fullscreen = $('<div class="fullscreen"><a></a></div>');
 		}
 	};
 

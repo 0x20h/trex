@@ -6,7 +6,9 @@ module.exports = function(grunt) {
 				banner: '/* Foo */',
 			},
 			build: {
-				src: 'src/jquery.<%= pkg.name %>.js',
+				src: [
+					'src/jquery.<%= pkg.name %>.js'
+				],
 				dest: 'build/jquery.trex.min.js'
 			}
 		},
@@ -26,5 +28,5 @@ module.exports = function(grunt) {
 	grunt.loadNpmTasks('grunt-contrib-jshint');
 	
 	// register default task
-	grunt.registerTask('default', ['jshint', 'uglify', 'cssmin']);	
+	grunt.registerTask('default', ['uglify', 'cssmin']);	
 };
