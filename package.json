@@ -4,7 +4,7 @@
   "description": "Terminal recorder and HTML5 Player (jQuery plugin)",
   "main": "index.js",
 	"dependencies": {
-		"term.js": "*"
+		"term.js": "https://github.com/0x20h/term.js/archive/v0.0.3.tar.gz"
 	},
 	"devDependencies": {
 		"grunt": "0.4.1",
