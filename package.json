@@ -1,0 +1,28 @@
+{
+  "name": "trex",
+  "version": "0.0.0",
+  "description": "Terminal recorder and HTML5 Player (jQuery plugin)",
+  "main": "index.js",
+	"dependencies": {
+		"term.js": "*"
+	},
+	"devDependencies": {
+		"grunt": "0.4.1",
+		"grunt-cli": "0.1.9",
+		"grunt-contrib-uglify": "0.2.4",
+		"grunt-contrib-cssmin": "0.6.1",
+		"grunt-contrib-jshint": "0.6.4"
+	},
+  "directories": {
+    "example": "examples"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@gitlab.pag:j.kohlhof/trex.git"
+  },
+  "author": "Jan Kohlhof <kohj@informatik.uni-marburg.de>",
+  "license": "MIT"
+}
