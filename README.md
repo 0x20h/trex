@@ -25,9 +25,20 @@ ls -l my_session.json
 ``` html
 # ...
 <body>
-	<div class="terminal" data-session="my_session.json"></div>
+    <head>
+        <style rel="stylesheet" href="css/jquery.trex.min.css">
+    </head>
+	<div class="terminal" data-session="/trex-sessions/my_session.json"></div>
 	...
 	<script src="http://code.jquery.com/jquery-2.0.2.min.js"></script>
-	<script src="term.min.js"></script>
 	<script src="jquery.trex.min.js"></script>
 ```
+
+
+## build
+
+```
+npm install
+grunt 
+```
+

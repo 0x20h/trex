@@ -3,11 +3,14 @@ module.exports = function(grunt) {
 		pkg: grunt.file.readJSON('package.json'),
 		uglify: {
 			options: {
-				banner: '/* Foo */',
+				preserveComments: function(node, comment) {
+					return comment.line == 1;
+				}
 			},
 			build: {
 				src: [
-					'src/jquery.<%= pkg.name %>.js'
+					'src/jquery.<%= pkg.name %>.js',
+					'node_modules/term.js/src/term.js'
 				],
 				dest: 'build/jquery.trex.min.js'
 			}
