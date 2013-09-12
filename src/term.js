@@ -435,8 +435,8 @@ Terminal.prototype.focus = function() {
 
 Terminal.prototype.blur = function() {
   if (Terminal.focus !== this) return;
-
-  this.cursorState = 0;
+	// always blink
+  //this.cursorState = 0;
   this.refresh(this.y, this.y);
   if (this.sendFocus) this.send('\x1b[O');
 
@@ -1297,7 +1297,8 @@ Terminal.prototype.refresh = function(start, end) {
 };
 
 Terminal.prototype._cursorBlink = function() {
-  if (Terminal.focus !== this) return;
+	// always blink
+  //if (Terminal.focus !== this) return;
   this.cursorState ^= 1;
   this.refresh(this.y, this.y);
 };

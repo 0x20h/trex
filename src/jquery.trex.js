@@ -6,21 +6,23 @@
 				 * Playback speed. Larger values slow down playback,
 				 * smaller values speed playback up. (speed > 0)
 				 */
-				speed: 1,	
+				speed: 1,
 				/**
 				 * Automatically start playing when initialized.
 				 */
 				auto_start: false
 			};
-	
+
+
 	function Trex(element, options) {
 		this.element = $(element);
-		this.wrapper = $('<div class="terminal-container"></div>');
+		this.wrapper = $('<div class="trex-wrapper"></div>');
 		this.element.append(this.wrapper);
 		this.settings = $.extend({}, defaults, options);
 		this._defaults = defaults;
 		this._name = pluginName;
 		this.controls = {};
+		this.timer;
 		this.init();
 	}
 
@@ -44,6 +46,13 @@
 				function(data) {
 					self.script = data.script;
 					self.timing = data.timing;
+					// accumulate timings. Create an "elapsed time" index
+					self.elapsed = self.timing.reduce(
+						function(p,c) { 
+							return p.concat(Number(p[p.length - 1]) + Number(c[0]));
+						}, 
+						[0]
+					);
 
 					self.term = new Terminal({
 						cols: parseInt(data.cols),
@@ -72,52 +81,63 @@
 			var self = this,
 					ticks = ticks || 1;
 
-			// check playback index	
+			// check playback index. Are we at the end of the script?
 			if (this.timing.length <= this.player.current) {
+				clearTimeout(this.timer);
+				
+				if (this.player.playing) {
+					this.toggle();
+				}
+
 				return;
 			}
 			
 			var delay = this.timing[this.player.current][0];
+
 			var update = function() {
 				var count = 0;
 				// move #ticks ticks forward
 				for (var i = 0; i < ticks; i++) {
-					var element = self.timing[self.player.current++];
+					var [, bytes] = self.timing[self.player.current++];
+
 					// count bytes to write
-					count += parseInt(element[1])
+					count += parseInt(bytes);
 				}
 
-				var content = self.script.substr(self.player.offset, count)
+				var buffer = self.script.substr(self.player.offset, count);
 				self.player.offset += count;
-				self.term.write(content);
-				self.controls.slider.slider('value', self.player.current)	
+				self.term.write(buffer);
+
+				// update slider position
+				self.controls.slider.css({
+					width: parseInt(self.player.current / self.timing.length * 100) + '%'
+				});
 
 				if (self.player.playing) {
 					self.tick();
 				}
 			};
 
-			// fast-forward	
-			if (ticks > 1) {
-				update();
-			} else {
-				this.timer = setTimeout(
-					update, 
-					delay * 1000 * this.settings.speed
-				);
-			}
+			clearTimeout(this.timer);
+			//console.log('timer, speed: ' + this.settings.speed);
+			this.timer = setTimeout(
+				update, 
+				ticks > 1 ? 0 : delay * 1000 * this.settings.speed
+			);
 		},
 		
 
 		/**
-		 * Reset player for the first position.
+		 * Reset player.
 		 */
 		reset: function() {
 			this.player = {
+				// current timing index
 				current: 0,
-				// ignore first line of the script file
-				offset: this.script.indexOf("\n"),
-				playing: this.settings.auto_start
+				// byte offset counter. Ignores first line of the script file (metadata)
+				offset: this.script.indexOf("\n") + 1,
+				// player state
+				playing: this.player ? this.player.playing : false
 			};
 
 			// clear pending timeouts
@@ -132,7 +152,12 @@
 		 * @param {Number} index The target index.
 		 */
 		jump: function(index) {
-			this.reset();
+			if (index < this.player.current) {
+				this.reset();
+			} else {
+				index = index - this.player.current;
+			}
+
 			this.tick(index);
 		},
 
@@ -141,63 +166,168 @@
 		 */
 		toggle: function() {
 			this.player.playing = !this.player.playing;
-
+			console.log('player state: ' + this.player.playing);
 			if (this.player.playing) {
-				this.tick();
+				if (this.timing.length - 1 <= this.player.current) {
+					this.jump(0);
+				} else {
+					this.tick();
+				}
 			}
 
 			this.term.focus();
+			this.element.trigger('toggle');
 		},
-
+		
 		/**
 		 * initialize player controls
 		 */
 		initControls: function() {
-			var self = this;
+			var self = this,
+					last_move = 0,
+					doc = $(document);
 
-			var controls = $('<div class="terminal-controls"></div>');
+			this._initPlayButton();
+			this._initSlider();
+			this._initFullscreen();
+			this._initTimeInfo();
 
-			// initialize player controls
-			this.controls['pause'] = $('<input class="pause" value="' + 
-				(this.player.playing ? 'pause' : 'play') + 
-				'" type="button"/>'
-			).bind('click', function() {
-					self.toggle();
-					this.value = self.player.playing ? 'pause' : 'play';
-			});
-
-			this.controls['slider'] = $('<div></div>').slider({
-				value: 0,
-				min: 0,
-				max: this.timing.length,
-				step: 1,
-				slide: function(event, ui) {
-					self.jump(ui.value);
-					pause.val(self.player.playing ? 'pause' : 'play');
-				}
-			});
-
-			var faster = $('<input value="+" type="button"/>')
-				.bind('click', function() {
-					self.settings.speed = self.settings.speed > .25 
-						? self.settings.speed / 2 
-						: .25;
-					self.term.focus();
-			});
-
-			var slower = $('<input value="-" type="button"/>')
-				.bind('click', function() {
-					self.settings.speed = self.settings.speed < 2 
-						? self.settings.speed * 2 
-						: 2; 
-					self.term.focus();
-			});
-			
-			controls
-				.append(this.controls.pause)
-				.append(this.controls.slider);
+			var controls = $('<div class="terminal-controls"></div>').
+				append(this.controls.play_pause).
+				append(this.controls.sliderWrapper).
+				append(this.controls.time_info);
 
 			this.wrapper.prepend(controls);
+
+			// show/hide controls
+			this.element.on('mouseenter', function() {
+				clearTimeout(self.controls.fadeout_controls_timer);
+				controls.fadeIn('fast');
+			}).on('mouseleave', function() {
+				self.controls.fadeout_controls_timer = setTimeout(function() {
+					controls.fadeOut('slow');
+				}, 1200);
+			});
+		},
+/**
+ * Initialize Play/Pause control.
+ */
+		_initPlayButton: function() {
+			var self = this;
+			
+			// initialize player controls
+			this.controls['play_pause'] = $('<div class="play"></div>').
+				on('click', function() {
+					self.toggle();
+			});
+
+			this.element.on('toggle', function(e) {
+					self.controls['play_pause'].toggleClass('pause').toggleClass( 'play');
+			});
+		},
+
+/**
+ * Initialize "elapsed time" control.
+ */
+		_initTimeInfo: function() {
+			var self = this,
+					total = this.elapsed[this.elapsed.length - 1],
+					elapsed = this.elapsed[this.player.current],
+					format = function(sec) {
+					
+						var sec_num = parseInt(sec, 10); // don't forget the second parm
+						var minutes = Math.floor(sec_num / 60);
+						var seconds = sec_num - (minutes * 60);
+
+						if (minutes < 10) {minutes = "0"+minutes;}
+						if (seconds < 10) {seconds = "0"+seconds;}
+						return minutes + ':' + seconds;
+					};
+
+			this.controls['time_info'] = $('<div class="time-info"><span class="elapsed">' + format(elapsed) +'</span>/'+format(total)+'</div>');
+			// update timer
+			setInterval(function() {
+				self.controls['time_info'].find('.elapsed').text(format(self.elapsed[self.player.current]));
+			}, 1000);
+		},
+
+
+/**
+ * Initialize slider control.
+ */
+		_initSlider: function() {
+			var self = this,
+					last_move = 0,
+					doc = $(document),
+					player_state;
+
+			this.controls['sliderWrapper'] = $('<div class="slider-wrapper"></div>').
+				on('click', function(e) { onMove(e) }).
+				on('mousedown', function(e) {
+					// stop player when sliding	
+					player_state = self.player.playing;
+					self.player.playing = false;
+
+					doc.
+						css({
+							cursor: 'pointer'
+						}).
+						on('mousemove', onMove).
+						on('mouseup', onStop);
+				});
+
+			var onMove = function(e) {
+				var now = Date.now(),
+						update = now - last_move > 50;
+
+				last_move = update ? now : last_move;
+
+				// clear frame timer
+				clearTimeout(this.timer);
+
+				// update the terminal at most every 50msecs
+				if (!update) {
+					return;
+				}
+
+				// don't hide controls during slide	
+				// @TODO implement slide event and use a callback
+				clearTimeout(self.controls.fadeout_controls_timer);
+
+				var el = self.controls.sliderWrapper,
+						// compute the corresponding timing index position
+						// substract 10 to point exactly to the "finger"
+						offset = ((e.originalEvent.clientX - el.position().left) / el.width());
+
+				if (offset < 0) offset = 0;
+				if (offset > 1) offset = 1;
+
+				self.jump(parseInt(offset * self.timing.length));
+			};
+
+			var onStop = function(e) {	
+				doc.
+					off('mousemove', onMove).
+					off('mouseup', onStop).
+					css({cursor: 'auto'});
+
+				self.player.playing = player_state;
+
+				if (self.player.playing) {
+					self.tick();
+				}
+			};
+
+			this.controls['slider'] = $('<div class="slider"></div>');
+			this.controls.sliderWrapper.append(this.controls.slider);
+		},
+
+/**
+ * Initialize fullscreen control.
+ * @TODO implement css buttons
+ */
+		_initFullscreen: function() {
+			this.controls['fullscreen'] = $('<div class="fullscreen"><a></a></div>');
 		}
 	};
 
