@@ -22,8 +22,7 @@ timingfile = ''.join([args.tmp, '/', prefix, str(uuid.uuid4())])
 scriptfile = ''.join([args.tmp, '/', prefix, str(uuid.uuid4())])
 
 # run script
-# ret = call(['script', '-q', '-t' + timingfile, scriptfile])
-ret = os.system('script -q -t ' + scriptfile + ' 2>'+timingfile)
+ret = os.system('script -q -t ' + scriptfile + ' 2>' + timingfile)
 
 if (ret):
 	os.unlink(timingfile)
