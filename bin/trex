@@ -8,9 +8,15 @@ parser = argparse.ArgumentParser(description=('trex - a terminal recorder wrappe
 	'json encoded file in OUT_FILE. Use the generated file to playback the session in your '
 	'browser using the trex jQuery plugin.'
 ))
-parser.add_argument('outfile', metavar='OUT_FILE', type=str, help=('The JSON-encoded session file (e.g. /some/path/my-session.json)'))
-parser.add_argument('--tmp', metavar='DIR', type=str, 
+
+subparsers = parser.add_subparsers(metavar="ACTION")
+record = subparsers.add_parser('record', description="record a session", help="record a new session in OUT_FILE")
+record.add_argument('outfile', metavar='OUT_FILE', type=str, help=('The JSON-encoded session file (e.g. /some/path/my-session.json)'))
+record.add_argument('--tmp', metavar='DIR', type=str, 
 	help='tmp dir for scriptfiles [/tmp]', default='/tmp')
+
+replay = subparsers.add_parser('replay')
+
 args = parser.parse_args()
 
 prefix = 'trex_'
