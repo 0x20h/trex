@@ -3,6 +3,9 @@
 from subprocess import call, check_output
 import os, uuid, json, argparse
 
+"""
+record a new terminal session.
+"""
 def record(args):
 	prefix = 'trex_'
 	cols = check_output(['tput', 'cols'])[:-1]
@@ -12,7 +15,7 @@ def record(args):
 	timingfile = ''.join([args.tmp, '/', prefix, str(uuid.uuid4())])
 	scriptfile = ''.join([args.tmp, '/', prefix, str(uuid.uuid4())])
 
-# run script
+	# run script
 	ret = os.system('script -q -t ' + scriptfile + ' 2>' + timingfile)
 
 	if (ret):
@@ -39,10 +42,27 @@ def record(args):
 		os.unlink(timingfile)
 		os.unlink(scriptfile)
 
+"""
+Replay a recorded trex session
+"""
 def replay(args):
-	print args.file
-	# @TODO start script to replay args.file
+	trex_file = json.load(open(args.file, 'r'))
+	timingfile = ''.join(['/tmp', '/', 'trex_replay_timing_', str(uuid.uuid4())])
+	scriptfile = ''.join(['/tmp', '/', 'trex_replay_script_', str(uuid.uuid4())])
+	timing = ''
 
+
+	with open(timingfile, 'w') as f:
+		for element in trex_file['timing']:
+			f.write(element[0] + " " + element[1] + "\n")
+	
+	with open(scriptfile, 'w') as f:
+		f.write(trex_file['script'].encode('utf-8'))
+	
+	ret = os.system('scriptreplay -t ' + timingfile + ' ' + scriptfile)
+	os.unlink(timingfile)
+	os.unlink(scriptfile)
+		
 # cli setup
 parser = argparse.ArgumentParser(description=('trex - a terminal recorder wrapper around `script`: '
 	'This program records your current terminal session and stores it as a '
