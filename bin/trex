@@ -3,6 +3,47 @@
 from subprocess import call, check_output
 import os, uuid, json, argparse
 
+def record(args):
+	prefix = 'trex_'
+	cols = check_output(['tput', 'cols'])[:-1]
+	lines = check_output(['tput', 'lines'])[:-1]
+	timing, script = [], []
+
+	timingfile = ''.join([args.tmp, '/', prefix, str(uuid.uuid4())])
+	scriptfile = ''.join([args.tmp, '/', prefix, str(uuid.uuid4())])
+
+# run script
+	ret = os.system('script -q -t ' + scriptfile + ' 2>' + timingfile)
+
+	if (ret):
+		os.unlink(timingfile)
+		os.unlink(scriptfile)
+		exit(1)
+
+# reformat to json
+	with open(timingfile, 'r') as f:
+		timing = [line[:-1].split() for line in f.readlines()]
+		f.close()
+
+	with open(scriptfile, 'r') as f:
+		script = f.read()
+		f.close()
+
+	json = json.dumps({ 'cols': cols, 'rows': lines, 
+		'timing': timing, 'script': script})
+
+# write json file
+	with open(args.outfile, 'w') as f:
+		f.write(json)
+		f.close()
+		os.unlink(timingfile)
+		os.unlink(scriptfile)
+
+def replay(args):
+	print args.file
+	# @TODO start script to replay args.file
+
+# cli setup
 parser = argparse.ArgumentParser(description=('trex - a terminal recorder wrapper around `script`: '
 	'This program records your current terminal session and stores it as a '
 	'json encoded file in OUT_FILE. Use the generated file to playback the session in your '
@@ -10,46 +51,15 @@ parser = argparse.ArgumentParser(description=('trex - a terminal recorder wrappe
 ))
 
 subparsers = parser.add_subparsers(metavar="ACTION")
-record = subparsers.add_parser('record', description="record a session", help="record a new session in OUT_FILE")
-record.add_argument('outfile', metavar='OUT_FILE', type=str, help=('The JSON-encoded session file (e.g. /some/path/my-session.json)'))
-record.add_argument('--tmp', metavar='DIR', type=str, 
+action = subparsers.add_parser('record', description="record a session", help="record a new session in OUT_FILE")
+action.add_argument('outfile', metavar='OUT_FILE', type=str, help=('The JSON-encoded session file (e.g. /some/path/my-session.json)'))
+action.add_argument('--tmp', metavar='DIR', type=str, 
 	help='tmp dir for scriptfiles [/tmp]', default='/tmp')
+action.set_defaults(func=record)
 
-replay = subparsers.add_parser('replay')
+action = subparsers.add_parser('replay', description="replay a session", help="replay a recorded session stored in FILE")
+action.add_argument('file', metavar='FILE', type=str, help=('The JSON-encoded session file to be replayed (e.g. /some/path/my-session.json)'))
+action.set_defaults(func=replay)
 
 args = parser.parse_args()
-
-prefix = 'trex_'
-cols = check_output(['tput', 'cols'])[:-1]
-lines = check_output(['tput', 'lines'])[:-1]
-timing, script = [], []
-
-timingfile = ''.join([args.tmp, '/', prefix, str(uuid.uuid4())])
-scriptfile = ''.join([args.tmp, '/', prefix, str(uuid.uuid4())])
-
-# run script
-ret = os.system('script -q -t ' + scriptfile + ' 2>' + timingfile)
-
-if (ret):
-	os.unlink(timingfile)
-	os.unlink(scriptfile)
-	exit(1)
-
-# reformat to json
-with open(timingfile, 'r') as f:
-	timing = [line[:-1].split() for line in f.readlines()]
-	f.close()
-
-with open(scriptfile, 'r') as f:
-	script = f.read()
-	f.close()
-
-json = json.dumps({ 'cols': cols, 'rows': lines, 
-	'timing': timing, 'script': script})
-
-# write json file
-with open(args.outfile, 'w') as f:
-	f.write(json)
-	f.close()
-	os.unlink(timingfile)
-	os.unlink(scriptfile)
+args.func(args)
