@@ -32,12 +32,12 @@ def record(args):
 		script = f.read()
 		f.close()
 
-	json = json.dumps({ 'cols': cols, 'rows': lines, 
+	s = json.dumps({ 'cols': cols, 'rows': lines, 
 		'timing': timing, 'script': script})
 
 # write json file
 	with open(args.outfile, 'w') as f:
-		f.write(json)
+		f.write(s)
 		f.close()
 		os.unlink(timingfile)
 		os.unlink(scriptfile)
