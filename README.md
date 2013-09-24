@@ -6,7 +6,7 @@
 curl http://gitlab.pag/j.kohlhof/trex/raw/master/bin/trex > trex
 chmod u+x trex
 
-./trex -h
+./trex [record|replay] -h
 ```
 
 ## record
@@ -24,10 +24,10 @@ exit
 In your terminal:
 
 ```
-./trex replay my_session
+./trex replay my_session.json
 ```
 
-In your webpage:
+Show the session on your webpage:
 
 ``` html
 # ...
@@ -35,17 +35,24 @@ In your webpage:
     <head>
         <style rel="stylesheet" href="css/jquery.trex.min.css">
     </head>
-	<div class="terminal" data-session="/trex-sessions/my_session.json"></div>
+	<div class="trex" data-session="/my_session.json"></div>
 	...
 	<script src="http://code.jquery.com/jquery-2.0.2.min.js"></script>
 	<script src="jquery.trex.min.js"></script>
+    <script type="text/javascript">
+        $(function() { 
+            $(".trex").trex({
+                speed: 1,
+                auto_start: false
+            }); 
+        })
+    </script>
 ```
 
 
-## build
+## build 
 
 ```
 npm install
-grunt 
+bin/grunt 
 ```
-
