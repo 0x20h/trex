@@ -162,7 +162,6 @@
 			// clear pending timeouts
 			clearTimeout(this.timer);
 			this.term.reset();
-			this.term.focus();
 		},
 
 		/**
@@ -194,7 +193,6 @@
 				}
 			}
 
-			this.term.focus();
 			this.element.trigger('toggle');
 		},
 		
