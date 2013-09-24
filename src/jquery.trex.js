@@ -65,10 +65,10 @@
 
 			$.getJSON(this.session, {},
 				function(data) {
-					self.script = data.script;
-					self.timing = data.timing;
+					self.chunks = data.chunks;
+					
 					// accumulate timings. Create an "elapsed time" index
-					self.elapsed = self.timing.reduce(
+					self.elapsed = self.chunks.reduce(
 						function(p,c) { 
 							return p.concat(Number(p[p.length - 1]) + Number(c[0]));
 						}, 
@@ -106,36 +106,32 @@
 			}
 
 			// check playback index. Are we at the end of the script?
-			if (this.timing.length <= this.player.current) {
+			if (this.chunks.length <= this.player.current) {
 				clearTimeout(this.timer);
 				
 				if (this.player.playing) {
 					this.toggle();
 				}
-
+				
 				return;
 			}
 			
-			var delay = this.timing[this.player.current][0];
+			var delay = this.chunks[this.player.current][0];
 
 			var update = function() {
-				var count = 0;
+				var buffer = '';
 				// move #ticks ticks forward
 				for (var i = 0; i < ticks; i++) {
-					var element = self.timing[self.player.current++],
-							bytes = element[1];
-
-					// count bytes to write
-					count += parseInt(bytes, 10);
+					var element = self.chunks[self.player.current++];
+					// collect bytes to write
+					buffer += element[1];
 				}
 
-				var buffer = self.script.substr(self.player.offset, count);
-				self.player.offset += count;
 				self.term.write(buffer);
 
 				// update slider position
 				self.controls.slider.css({
-					width: parseInt(self.player.current / self.timing.length * 100, 10) + '%'
+					width: parseInt(self.player.current / self.chunks.length * 100, 10) + '%'
 				});
 
 				if (self.player.playing) {
@@ -144,7 +140,7 @@
 			};
 
 			clearTimeout(this.timer);
-			//console.log('timer, speed: ' + this.settings.speed);
+			
 			this.timer = setTimeout(
 				update, 
 				ticks > 1 ? 0 : delay * 1000 * this.settings.speed
@@ -159,8 +155,6 @@
 			this.player = {
 				// current timing index
 				current: 0,
-				// byte offset counter. Ignores first line of the script file (metadata)
-				offset: this.script.indexOf("\n") + 1,
 				// player state
 				playing: this.player ? this.player.playing : false
 			};
@@ -191,9 +185,9 @@
 		 */
 		toggle: function() {
 			this.player.playing = !this.player.playing;
-			console.log('player state: ' + this.player.playing);
+			
 			if (this.player.playing) {
-				if (this.timing.length - 1 <= this.player.current) {
+				if (this.chunks.length - 1 <= this.player.current) {
 					this.jump(0);
 				} else {
 					this.tick();
@@ -327,7 +321,7 @@
 				if (offset < 0) offset = 0;
 				if (offset > 1) offset = 1;
 
-				self.jump(parseInt(offset * self.timing.length, 10));
+				self.jump(parseInt(offset * self.chunks.length, 10));
 			};
 
 			var onStop = function(e) {	

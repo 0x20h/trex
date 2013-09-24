@@ -22,18 +22,24 @@ def record(args):
 		os.unlink(timingfile)
 		os.unlink(scriptfile)
 		exit(1)
-
+	
+	chunks = []
 # reformat to json
 	with open(timingfile, 'r') as f:
 		timing = [line[:-1].split() for line in f.readlines()]
+		s = open(scriptfile, 'r')
+		# skip first line
+		s.readline()
+		
+		for t in timing:
+			# read t[1] bytes from scriptfile
+			chunk = s.read(int(t[1]))
+			chunks.append([t[0], chunk])
+		
+		s.close()
 		f.close()
-
-	with open(scriptfile, 'r') as f:
-		script = f.read()
-		f.close()
-
-	s = json.dumps({ 'cols': cols, 'rows': lines, 
-		'timing': timing, 'script': script})
+	
+	s = json.dumps({ 'cols': cols, 'rows': lines, 'chunks': chunks})
 
 # write json file
 	with open(args.outfile, 'w') as f:
