@@ -1,6 +1,6 @@
 {
   "name": "trex",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "Terminal recorder and HTML5 Player (jQuery plugin)",
   "main": "index.js",
 	"dependencies": {

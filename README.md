@@ -12,15 +12,22 @@ chmod u+x trex
 ## record
 
 ```
-./trex my_session.json
+./trex record my_session.json
 
 # ...
 # record your session, when finished:
 exit
-ls -l my_session.json
 ```
 
 ## playback
+
+In your terminal:
+
+```
+./trex replay my_session
+```
+
+In your webpage:
 
 ``` html
 # ...
