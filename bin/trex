@@ -14,7 +14,8 @@ def record(args):
 
 	timingfile = ''.join([args.tmp, '/', prefix, str(uuid.uuid4())])
 	scriptfile = ''.join([args.tmp, '/', prefix, str(uuid.uuid4())])
-
+	
+	os.system('clear')
 	# run script
 	ret = os.system('script -q -t ' + scriptfile + ' 2>' + timingfile)
 
@@ -34,7 +35,7 @@ def record(args):
 		for t in timing:
 			# read t[1] bytes from scriptfile
 			chunk = s.read(int(t[1]))
-			chunks.append([t[0], chunk])
+			chunks.append([round(float(t[0]), 3), chunk])
 		
 		s.close()
 		f.close()
@@ -47,6 +48,8 @@ def record(args):
 		f.close()
 		os.unlink(timingfile)
 		os.unlink(scriptfile)
+
+	os.system('clear')
 
 """
 Replay a recorded trex session
