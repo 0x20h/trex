@@ -6,7 +6,7 @@
 curl http://gitlab.pag/j.kohlhof/trex/raw/master/bin/trex > trex
 chmod u+x trex
 
-./trex [record|replay] -h
+./trex [record|replay|convert] -h
 ```
 
 ## record
