@@ -17,7 +17,8 @@ def record(args):
 	
 	os.system('clear')
 	print "Recording..."
-	# run script
+	
+	# run script (compatible to old script versions)
 	ret = os.system('script -q -t ' + scriptfile + ' 2>' + timingfile)
 
 	if (ret):
@@ -143,7 +144,6 @@ action.add_argument('-r', '--rows', metavar='N', type=str, required=True, help=(
 action.add_argument('-c', '--cols', metavar='N', type=str, required=True, help=('Terminal columns'))
 action.add_argument('outfile', metavar='OUT_FILE', type=str, help=('The JSON-encoded session file (e.g. /some/path/my-session.json)'))
 action.set_defaults(func=convert)
-
 
 args = parser.parse_args()
 args.func(args)

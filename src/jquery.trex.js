@@ -3,21 +3,24 @@
  *
  * Copyright (c) 2013 Jan Kohlhof <kohj@informatik.uni-marburg.de>
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy of this 
- * software and associated documentation files (the "Software"), to deal in the Software 
- * without restriction, including without limitation the rights to use, copy, modify, merge, 
- * publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons 
- * to whom the Software is furnished to do so, subject to the following conditions:
+ * Permission is hereby granted, free of charge, to any person obtaining a 
+ * copy of this software and associated documentation files 
+ * (the "Software"), to deal in the Software without restriction, 
+ * including without limitation the rights to use, copy, modify, merge, 
+ * publish, distribute, sublicense, and/or sell copies of the Software, 
+ * and to permit persons to whom the Software is furnished to do so, 
+ * subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all copies or 
- * substantial portions of the Software.
+ * The above copyright notice and this permission notice shall be included 
+ * in all copies or substantial portions of the Software.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, 
- * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR 
- * PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE 
- * FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, 
- * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE 
- * SOFTWARE.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS 
+ * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF 
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. 
+ * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE 
+ * FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF 
+ * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH 
+ * THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 ;(function($, window, document, undefined) {
 
@@ -55,7 +58,7 @@
 		init: function() {
 			var self = this;
 			// read which session to load
-			this.session = $(this.element).data('session');
+			this.session = this.element.data('session');
 
 			if (!this.session) {
 				console.error('Please provide a session name via the' +
@@ -211,6 +214,7 @@
 
 			var controls = $('<div class="terminal-controls"></div>').
 				append(this.controls.play_pause).
+				//append(this.controls.expand).
 				append(this.controls.sliderWrapper).
 				append(this.controls.time_info);
 
@@ -224,6 +228,8 @@
 				self.controls.fadeout_controls_timer = setTimeout(function() {
 					controls.fadeOut('slow');
 				}, 1200);
+			}).on('click', function() {
+				self.toggle();
 			});
 		},
 /**
@@ -233,10 +239,7 @@
 			var self = this;
 			
 			// initialize player controls
-			this.controls.play_pause = $('<div class="play"></div>').
-				on('click', function() {
-					self.toggle();
-			});
+			this.controls.play_pause = $('<div class="play trex-sprite play-controls"></div>');
 
 			this.element.on('toggle', function(e) {
 					self.controls.play_pause.toggleClass('pause').toggleClass( 'play');
@@ -277,21 +280,6 @@
 					last_move = 0,
 					doc = $(document),
 					player_state;
-
-			this.controls.sliderWrapper = $('<div class="slider-wrapper"></div>').
-				on('click', function(e) { onMove(e); }).
-				on('mousedown', function(e) {
-					// stop player when sliding	
-					player_state = self.player.playing;
-					self.player.playing = false;
-
-					doc.
-						css({
-							cursor: 'pointer'
-						}).
-						on('mousemove', onMove).
-						on('mouseup', onStop);
-				});
 
 			var onMove = function(e) {
 				var now = Date.now(),
@@ -335,16 +323,55 @@
 				}
 			};
 
+			this.controls.sliderWrapper = $('<div class="slider-wrapper"></div>').
+				on('click', function(e) { onMove(e); }).
+				on('mousedown', function(e) {
+					// stop player when sliding	
+					player_state = self.player.playing;
+					self.player.playing = false;
+
+					doc.
+						css({
+							cursor: 'pointer'
+						}).
+						on('mousemove', onMove).
+						on('mouseup', onStop);
+				});
+
 			this.controls.slider = $('<div class="slider"></div>');
 			this.controls.sliderWrapper.append(this.controls.slider);
 		},
 
 /**
  * Initialize fullscreen control.
- * @TODO implement css buttons
  */
 		_initFullscreen: function() {
-			this.controls.fullscreen = $('<div class="fullscreen"><a></a></div>');
+			var self = this;
+			this.controls.expand = $('<div class="expand screen-controls trex-sprite"></div>').
+				on('click', function() {
+					var container = self.element.get(0),
+							el = $(this);
+							
+
+					if (el.hasClass('expand')) {
+						el.toggleClass('expand').toggleClass('shrink');
+						
+						if (container.requestFullscreen) {
+								container.requestFullscreen();
+						} else if (container.mozRequestFullScreen) {
+								container.mozRequestFullScreen();
+						} else if (container.webkitRequestFullscreen) {
+								container.webkitRequestFullscreen();
+						}
+					
+						if (!self.player.playing) {
+							self.toggle();
+						}
+					} else {
+						el.toggleClass('expand').toggleClass('shrink');
+					}
+
+				})
 		}
 	};
 
