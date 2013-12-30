@@ -59,6 +59,7 @@
 			var self = this;
 			// read which session to load
 			this.session = this.element.data('session');
+			this.index = [];
 
 			if (!this.session) {
 				console.error('Please provide a session name via the' +
@@ -69,14 +70,19 @@
 			$.getJSON(this.session, {},
 				function(data) {
 					self.chunks = data.chunks;
-					
-					// accumulate timings. Create an "elapsed time" index
 					self.elapsed = self.chunks.reduce(
 						function(p,c) { 
 							return p.concat(Number(p[p.length - 1]) + Number(c[0]));
 						}, 
 						[0]
 					);
+					
+					var acc = 0;
+					self.chunks.forEach(function(v, k) {
+						// store chunk index per second
+						// @TODO handle gaps
+						self.index[parseInt(acc += Number(v[0]), 10)] = k;
+					});
 
 					self.term = new Terminal({
 						cols: parseInt(data.cols, 10),
@@ -131,12 +137,8 @@
 				}
 
 				self.term.write(buffer);
-
-				// update slider position
-				self.controls.slider.css({
-					width: parseInt(self.player.current / self.chunks.length * 100, 10) + '%'
-				});
-
+				self.element.trigger("tick", [self.player.current]);
+				
 				if (self.player.playing) {
 					self.tick();
 				}
@@ -340,6 +342,14 @@
 
 			this.controls.slider = $('<div class="slider"></div>');
 			this.controls.sliderWrapper.append(this.controls.slider);
+
+			this.element.on("tick", function(e, pos) {
+				//var p = self.index.indexOf(pos);
+				// update slider pos
+				self.controls.slider.css({
+					width: parseInt(pos / self.chunks.length * 100, 10) + '%'
+				});
+			});
 		},
 
 /**
@@ -371,7 +381,7 @@
 						el.toggleClass('expand').toggleClass('shrink');
 					}
 
-				})
+				});
 		}
 	};
 
