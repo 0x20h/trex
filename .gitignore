@@ -1,5 +1,5 @@
-vimrc
-execute_on_save.sh
-tags
-build
-node_modules
+/vimrc
+/execute_on_save.sh
+/tags
+/build
+/node_modules
