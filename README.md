@@ -3,7 +3,7 @@
 ## install
 
 ```
-curl http://gitlab.pag/j.kohlhof/trex/raw/master/bin/trex > trex
+curl https://raw.github.com/0x20h/trex/master/bin/trex > trex
 chmod u+x trex
 
 ./trex [record|replay|convert] -h
