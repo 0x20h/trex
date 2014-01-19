@@ -1,0 +1,21 @@
+<!doctype html>
+<head>
+	<title>trex.jquery.js</title>
+	<link rel="stylesheet" href="build/jquery.trex.css">
+	<meta charset="UTF-8">
+	<style>
+		body { background-color: #000; }
+	</style>
+</head>
+<body>
+	<div class="trex" data-session="examples/introduction.json"></div>
+	<script src="build/term.min.js"></script>
+	<script src="//code.jquery.com/jquery-2.0.2.min.js"></script>
+	<script src="build/jquery.trex.min.js"></script>
+	<script>
+	$(function() {
+	  $('.trex').trex({speed: 1, auto_start: true});
+	});
+	</script>
+</body>
+
