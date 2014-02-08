@@ -54,7 +54,16 @@ Show the session on your webpage:
 
 ```
 npm install
-bin/grunt 
+grunt
 ```
 
+## JSON File Format
 
+The generated JSON file has four keys:
+
+* rows: number of rows of the recorded terminal
+* columns: number of columns of the recorded terminal
+* chunks: array, each value consists of a tripel (delay, content, keyframe).
+  - delay: delay in msec when to print the content
+  - content: typescript
+  - keyframe: 0|1
