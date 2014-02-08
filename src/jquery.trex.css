@@ -1,9 +1,11 @@
-/* @TODO this should probably only be in sliding context */
-body {
+/*!
+ * trex - html5 player for terminal sessions based on term.js.
+ * Copyright (c) 2013 Jan Kohlhof <kohj@informatik.uni-marburg.de>
+ */
+.unselectable {
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
-  user-select: none;
 }
 
 .trex-sprite {
