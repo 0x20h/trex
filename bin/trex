@@ -52,12 +52,30 @@ def encode(scriptfile, timingfile, rows, cols):
     s = open(scriptfile, 'r')
     # skip first line
     s.readline()
-    
+    chunk = ''
+    acc = 0
+    step = .5
+
     for t in timing:
       # read t[1] bytes from scriptfile
-      chunk = s.read(int(t[1]))
-      chunks.append([round(float(t[0]), 3), chunk])
-    
+      chunk += s.read(int(t[1]))
+      dur = float(t[0])
+
+      while dur > 0:
+        dur = dur - step
+        delay = step if dur > 0 else step + dur
+
+        chunks.append([
+          round(delay, 3),
+          chunk if dur <= 0 else "",
+          1 if acc % step >= (acc + delay) % step else 0
+        ])
+
+        acc = acc + delay
+
+      if dur < 0:
+        chunk = ''
+
     s.close()
     f.close()
     s = json.dumps({'rows': rows, 'cols': cols, 'chunks': chunks})

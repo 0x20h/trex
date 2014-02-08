@@ -57,12 +57,14 @@
             [0]
           );
           
-          var acc = 0;
+          // store chunk index per second
           self.chunks.forEach(function(v, k) {
-            // store chunk index per second
-            // @TODO handle gaps
-            self.index[parseInt(acc += Number(v[0]), 10)] = k;
+            if (v[2]) {
+              self.index.push(k);
+            }
           });
+
+          self.index.push(self.chunks.length - 1);
 
           self.term = new Terminal({
             cols: parseInt(data.cols, 10),
@@ -116,7 +118,10 @@
           buffer += element[1];
         }
 
-        self.term.write(buffer);
+        if (buffer) {
+          self.term.write(buffer);
+        }
+        
         self.element.trigger("tick", [self.player.current]);
         
         if (self.player.playing) {
@@ -289,7 +294,7 @@
         if (offset < 0) offset = 0;
         if (offset > 1) offset = 1;
 
-        self.jump(parseInt(offset * self.chunks.length, 10));
+        self.jump(self.index[parseInt(offset * self.index.length, 10)]);
       };
 
       var onStop = function(e) {  
@@ -324,10 +329,15 @@
       this.controls.sliderWrapper.append(this.controls.slider);
 
       this.element.on("tick", function(e, pos) {
-        //var p = self.index.indexOf(pos);
-        // update slider pos
+        var p = self.index.indexOf(pos);
+        // update slider pos only for keyframes
+        if (p < 0) {
+          return;
+        }
+console.log([p, self.index[p], self.chunks.length]);
+
         self.controls.slider.css({
-          width: parseInt(pos / self.chunks.length * 100, 10) + '%'
+          width: parseInt(p / (self.index.length - 1) * 100, 10) + '%'
         });
       });
     },
