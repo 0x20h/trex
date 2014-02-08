@@ -63,8 +63,10 @@
               self.index.push(k);
             }
           });
-
-          self.index.push(self.chunks.length - 1);
+          
+          if (self.index[self.index.length - 1] < self.chunks.length - 1) {
+            self.index.push(self.chunks.length - 1);
+          }
 
           self.term = new Terminal({
             cols: parseInt(data.cols, 10),
