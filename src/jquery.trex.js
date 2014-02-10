@@ -56,14 +56,14 @@
             },
             [0]
           );
-          
+
           // store chunk index per second
           self.chunks.forEach(function(v, k) {
             if (v[2]) {
               self.index.push(k);
             }
           });
-          
+
           if (self.index[self.index.length - 1] < self.chunks.length - 1) {
             self.index.push(self.chunks.length - 1);
           }
@@ -93,7 +93,7 @@
      */
     tick: function(ticks) {
       var self = this;
-      
+
       if (!ticks) {
         ticks = 1;
       }
@@ -101,14 +101,14 @@
       // check playback index. Are we at the end of the script?
       if (this.chunks.length <= this.player.current) {
         clearTimeout(this.timer);
-        
+
         if (this.player.playing) {
           this.toggle();
         }
-        
+
         return;
       }
-      
+
       var delay = this.chunks[this.player.current][0];
 
       var update = function() {
@@ -123,22 +123,22 @@
         if (buffer) {
           self.term.write(buffer);
         }
-        
+
         self.element.trigger("tick", [self.player.current]);
-        
+
         if (self.player.playing) {
           self.tick();
         }
       };
 
       clearTimeout(this.timer);
-      
+
       this.timer = setTimeout(
         update,
         ticks > 1 ? 0 : delay * 1000 * this.settings.speed
       );
     },
-    
+
 
     /**
      * Reset player.
@@ -176,7 +176,7 @@
      */
     toggle: function() {
       this.player.playing = !this.player.playing;
-      
+
       if (this.player.playing) {
         if (this.chunks.length - 1 <= this.player.current) {
           this.jump(0);
@@ -187,7 +187,7 @@
 
       this.element.trigger('toggle');
     },
-    
+
     /**
      * initialize player controls
      */
@@ -226,7 +226,7 @@
  */
     _initPlayButton: function() {
       var self = this;
-      
+
       // initialize player controls
       this.controls.play_pause = $('<div class="play trex-sprite play-controls"></div>');
 
@@ -243,7 +243,7 @@
           total = this.elapsed[this.elapsed.length - 1],
           elapsed = this.elapsed[this.player.current],
           format = function(sec) {
-          
+
             var sec_num = parseInt(sec, 10); // don't forget the second parm
             var minutes = Math.floor(sec_num / 60);
             var seconds = sec_num - (minutes * 60);
@@ -284,7 +284,7 @@
           return;
         }
 
-        // don't hide controls during slide  
+        // don't hide controls during slide
         // @TODO implement slide event and use a callback
         clearTimeout(self.controls.fadeout_controls_timer);
 
@@ -299,7 +299,7 @@
         self.jump(self.index[parseInt(offset * self.index.length, 10)]);
       };
 
-      var onStop = function(e) {  
+      var onStop = function(e) {
         doc.
           off('mousemove', onMove).
           off('mouseup', onStop).
@@ -315,16 +315,20 @@
       this.controls.sliderWrapper = $('<div class="slider-wrapper"></div>').
         on('click', function(e) { onMove(e); }).
         on('mousedown', function(e) {
-          // stop player when sliding  
+          // stop player when sliding
           player_state = self.player.playing;
           self.player.playing = false;
 
+          self.element.addClass('unselectable');
           doc.
             css({
               cursor: 'pointer'
             }).
             on('mousemove', onMove).
-            on('mouseup', onStop);
+            on('mouseup', function(e) {
+              self.element.removeClass('unselectable');
+              onStop(e);
+            });
         });
 
       this.controls.slider = $('<div class="slider"></div>');
@@ -336,7 +340,6 @@
         if (p < 0) {
           return;
         }
-console.log([p, self.index[p], self.chunks.length]);
 
         self.controls.slider.css({
           width: parseInt(p / (self.index.length - 1) * 100, 10) + '%'
@@ -353,11 +356,11 @@ console.log([p, self.index[p], self.chunks.length]);
         on('click', function() {
           var container = self.element.get(0),
               el = $(this);
-              
+
 
           if (el.hasClass('expand')) {
             el.toggleClass('expand').toggleClass('shrink');
-            
+
             if (container.requestFullscreen) {
                 container.requestFullscreen();
             } else if (container.mozRequestFullScreen) {
@@ -365,7 +368,7 @@ console.log([p, self.index[p], self.chunks.length]);
             } else if (container.webkitRequestFullscreen) {
                 container.webkitRequestFullscreen();
             }
-          
+
             if (!self.player.playing) {
               self.toggle();
             }
